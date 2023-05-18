@@ -18,6 +18,12 @@ class Definition: public Statement{
 
 };
 
+class TypeDefinition: public Definition{
+    VarType* Type;
+    std::string Alias;
+    TypeDefinition(VarType* _Type, std::string _Alias);
+};
+
 class FunName: public Node{
     std::string Name;
     int PointerDim;
@@ -60,7 +66,7 @@ class Var: public Node{
     std::string Name;
     Var(std::string _Name);
 public:
-    void AddPointer();
+    void SetPointer(int dim);
     void AddArray(int _Size);
 };
 
@@ -83,9 +89,9 @@ class BuildInType: public VarType{
     BuildInType(enum TypeIndex _Index);
 };
 
-class TypedefType: public VarType{
+class RenameType: public VarType{
     std::string name;
-    TypedefType(std::string _name);
+    RenameType(std::string _name);
 };
 
 class StructType: public VarType{

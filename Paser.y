@@ -64,6 +64,7 @@ Program *Root;
 %type<funname> FunName
 %type<vartype>	VarType
 %type<star> Star
+%type<var> Array
 %type<builtInType>						BuiltInType
 %type<fieldDecls>						FieldDecls
 %type<fieldDecl>						FieldDecl
@@ -134,6 +135,7 @@ FunName:	Star IDENTIFIER	{$$ = new FunName($1, $2->GetDim()); delete $2;}
 
 Star:	Star MUL	{$$ = $1; $$->Add();}
 		|	{$$ = new Star();}
+		;
 
 VarDefinition:	VarType VarList	SEMI   									{$$ = new AST::VarDecl($1,$2);}
 			;
@@ -143,18 +145,17 @@ VarList:	VarList COMMA Var	{$$ = $1; $$->push_back($3);}
 			|	{$$ = new std::vector<Var*>;}
 			;
 
-VarInit:	IDENTIFIER												{  $$ = new AST::VarInit(*$1);   }
-			| IDENTIFIER ASSIGN Expr								{  $$ = new AST::VarInit(*$1,$3);   }
+Var: Star Array	{$$ = $2; $$->SetPointer($1->GetDim()); delete $1;}
+	;
+
+Array: 	Array LPAREN INTEGER RPAREN	{$$ = $1; $$->AddArray($3);}
+		| IDENTIFIER	{$$ = new Var($1);}
+		;
+
+TypeDefinition:	TYPEDEF VarType IDENTIFIER	SEMI	{$$ = new AST::TypeDecl($2, $3);}
 			;
 
-TypeDecl:	TYPEDEF VarType IDENTIFIER	SEMI						{  $$ = new AST::TypeDecl($2,*$3);   }
-			;
-
-VarType:	_VarType												{  $$ = $1;   }
-			| CONST _VarType										{  $$ = $2; $$->SetConst();   }
-			;
-
-_VarType:	BuiltInType												{  $$ = $1;   }
+VarType:	BuiltInType												{  $$ = $1;   }
 			| STRUCT LBRACE FieldDecls RBRACE						{  $$ = new AST::StructType($3);   }
 			| UNION LBRACE FieldDecls RBRACE						{  $$ = new AST::UnionType($3);   }
 			| ENUM LBRACE EnmList RBRACE							{  $$ = new AST::EnumType($3);   }
