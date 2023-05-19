@@ -31,7 +31,6 @@ char Escape2Char(char ch){
 
 %%
 ","	return COMMA;
-"..." return ELLIPSES;  
 "." return DOT;
 ";"														{return SEMI;}
 "("														{return LPAREN;}

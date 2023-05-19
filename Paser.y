@@ -19,7 +19,7 @@ Program *Root;
 
 %union {
     int iVal;
-    std::string *sVal;
+    std::string sVal;
     double dVal;
     char cVal;
     Program* program;
@@ -35,9 +35,18 @@ Program *Root;
 	Star* star;
 	std::vector<Var*>* varlist; 
 	Var* var;
+	BuildInType* buildintype;
+	EnumType* enumtype;
+	StructType* structtype;
+	Block* block;
+	Statement* statement;
+	IfStatement* ifstatement;
+	WhileStatement* whilestatement;
+	DoWhileStatement* dowhilestatement;
+	ForStatement* forstatement;
 }
 
-%token  COMMA ELLIPSES DOT SEMI QUES COLON
+%token  COMMA DOT SEMI QUES COLON
 		LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
 		SHLEQ SHL SHREQ SHR
 		EQ GE GT LE LT NEQ NOT ASSIGN
@@ -45,7 +54,7 @@ Program *Root;
 		ARW BXOREQ BXOR BNOT
 		DADD ADDEQ ADD DSUB SUBEQ SUB
 		MULEQ MUL DIVEQ DIV MODEQ MOD
-		STRUCT UNION TYPEDEF CONST ENUM PTR ARRAY
+		STRUCT TYPEDEF ENUM
 		IF ELSE FOR WHILE DO SWITCH CASE DEFAULT 
 		BREAK CONTINUE RETURN SIZEOF TRUE FALSE
 		BOOL SHORT INT LONG CHAR FLOAT DOUBLE VOID
@@ -65,11 +74,11 @@ Program *Root;
 %type<vartype>	VarType
 %type<star> Star
 %type<var> Array
-%type<builtInType>						BuiltInType
-%type<fieldDecls>						FieldDecls
-%type<fieldDecl>						FieldDecl
+%type<buildintype>	BuiltInType
+%type<enumtype> EnumList, EnumAssign
+%type<structtype>	StructList
 %type<memList>							MemList _MemList	
-%type<stmt>								Stmt
+%type<statement>	Statement
 %type<ifStmt>							IfStmt
 %type<forStmt>							ForStmt
 %type<whileStmt>						WhileStmt
@@ -80,8 +89,7 @@ Program *Root;
 %type<breakStmt>						BreakStmt
 %type<continueStmt>						ContinueStmt
 %type<returnStmt>						ReturnStmt
-%type<stmts>							Stmts
-%type<block>							Block
+%type<block>	Block
 %type<arg>								Arg
 %type<arglist>	ArgList
 %type<var>	Var
@@ -89,8 +97,6 @@ Program *Root;
 %type<expr>								Expr	
 %type<constant>							Constant
 %type<exprList>							ExprList _ExprList
-%type<enm>								Enm
-%type<enmList>							EnmList	_EnmList
 
 %nonassoc IF
 %nonassoc ELSE
@@ -145,92 +151,60 @@ VarList:	VarList COMMA Var	{$$ = $1; $$->push_back($3);}
 			|	{$$ = new std::vector<Var*>;}
 			;
 
-Var: Star Array	{$$ = $2; $$->SetPointer($1->GetDim()); delete $1;}
-	;
+Var:	Star Array	{$$ = $2; $$->SetPointer($1->GetDim()); delete $1;}
+		;
 
 Array: 	Array LPAREN INTEGER RPAREN	{$$ = $1; $$->AddArray($3);}
 		| IDENTIFIER	{$$ = new Var($1);}
 		;
 
 TypeDefinition:	TYPEDEF VarType IDENTIFIER	SEMI	{$$ = new AST::TypeDecl($2, $3);}
-			;
+				;
 
-VarType:	BuiltInType												{  $$ = $1;   }
-			| STRUCT LBRACE FieldDecls RBRACE						{  $$ = new AST::StructType($3);   }
-			| UNION LBRACE FieldDecls RBRACE						{  $$ = new AST::UnionType($3);   }
-			| ENUM LBRACE EnmList RBRACE							{  $$ = new AST::EnumType($3);   }
-			| _VarType PTR											{  $$ = new AST::PointerType($1);   }
-			| _VarType ARRAY LPAREN INTEGER RPAREN					{  $$ = new AST::ArrayType($1,$4);   }
-			| _VarType ARRAY LPAREN RPAREN							{  $$ = new AST::ArrayType($1);   }
-			| IDENTIFIER											{  $$ = new AST::DefinedType(*$1);   }
+VarType:	BuiltInType	{$$ = $1;}
+			| STRUCT LBRACE StructList RBRACE	{$$ = $3;}
+			| ENUM LBRACE EnumList RBRACE	{$$ = $3;}
+			| IDENTIFIER	{$$ = new RenameType($1);}
 			;
 			
-BuiltInType: BOOL													{  $$ = new AST::BuiltInType(AST::BuiltInType::TypeID::_Bool);   }
-			| SHORT													{  $$ = new AST::BuiltInType(AST::BuiltInType::TypeID::_Short);   }
-			| INT													{  $$ = new AST::BuiltInType(AST::BuiltInType::TypeID::_Int);   }
-			| LONG													{  $$ = new AST::BuiltInType(AST::BuiltInType::TypeID::_Long);   }
-			| CHAR													{  $$ = new AST::BuiltInType(AST::BuiltInType::TypeID::_Char);   }
-			| FLOAT													{  $$ = new AST::BuiltInType(AST::BuiltInType::TypeID::_Float);   }
-			| DOUBLE												{  $$ = new AST::BuiltInType(AST::BuiltInType::TypeID::_Double);   }
-			| VOID													{  $$ = new AST::BuiltInType(AST::BuiltInType::TypeID::_Void);   }
+BuiltInType: BOOL	{$$ = new BuiltInType(INT);}
+			| SHORT	{$$ = new BuiltInType(Short);}
+			| INT	{$$ = new BuiltInType(Int);}
+			| LONG	{$$ = new BuiltInType(Long);}
+			| CHAR	{$$ = new BuiltInType(Char);}
+			| FLOAT	{$$ = new BuiltInType(Float);}
+			| DOUBLE	{$$ = new BuiltInType(Double);}
+			| VOID	{$$ = new BuiltInType(Void);}
 			;
 
-FieldDecls:	FieldDecls FieldDecl            						{  $$ = $1; if ($2 != NULL) $$->push_back($2);   }
-			|														{  $$ = new AST::FieldDecls();   }
+StructList:	StructList VarDefinition	{$$ = $1; $$->Add($2);}
+			|	{$$ = new StructType();}
 			;
 
-FieldDecl:	VarType MemList	SEMI    								{  $$ = new AST::FieldDecl($1,$2);   }
-			| SEMI													{  $$ = NULL;   }
+EnumList:	EnumList COMMA EnumAssign	{$$ = $1; $$->Add($3);}
+			| EnumAssign	{$$ = new EnumType(); $$->Add($1);}
+			| 	{$$ = new EnumType();}
 			;
 
-MemList:	_MemList COMMA IDENTIFIER								{  $$ = $1; $$->push_back(*$3);   }
-			| IDENTIFIER											{  $$ = new AST::MemList(); $$->push_back(*$1);   }	
-			|														{  $$ = new AST::MemList();   }
+EnumAssign:	IDENTIFIER	{$$ = new EnumDefinition($1, -1);}
+			| IDENTIFIER ASSIGN INTEGER	{$$ = new EnumDefinition($1, $3);}
 			;
 
-_MemList:	_MemList COMMA IDENTIFIER								{  $$ = $1; $$->push_back(*$3);   }
-			| IDENTIFIER											{  $$ = new AST::MemList(); $$->push_back(*$1);   }
+ArgList:	ArgList COMMA VarType IDENTIFIER	{$$ = $1; $$->Add($3, $4);}
+			| VarType IDENTIFIER	{$$ = new ArgList(); $$->Add($1, $2);}
+			|	{$$ = new ArgList();}
+
+Block:	LBRACE Statements RBRACE	{$$ = new Block($2);}
+		;
+
+Statements:	Statements Statement	{$$ = $1; $$->push_back($2);}	
+			|	{$$ = new std::vector<Statement*>;}
 			;
 
-EnmList:	_EnmList COMMA Enm										{  $$ = $1; $$->push_back($3);   }
-			| Enm													{  $$ = new AST::EnmList(); $$->push_back($1);   }
-			|														{  $$ = new AST::EnmList();   }		
-			;
-
-_EnmList:	_EnmList COMMA Enm										{  $$ = $1; $$->push_back($3);   }
-			| Enm													{  $$ = new AST::EnmList(); $$->push_back($1);   }
-			;
-
-Enm:		IDENTIFIER												{  $$ = new AST::Enm(*$1);   }
-			| IDENTIFIER ASSIGN INTEGER								{  $$ = new AST::Enm(*$1,true,$3);   };
-			;
-
-ArgList:	_ArgList COMMA Arg										{  $$ = $1; $$->push_back($3);   }
-			| _ArgList COMMA ELLIPSES								{  $$ = $1; $$->SetVarArg();   }
-			| Arg													{  $$ = new AST::ArgList(); $$->push_back($1);   }
-			| ELLIPSES												{  $$ = new AST::ArgList(); $$->SetVarArg();   }
-			|														{  $$ = new AST::ArgList();   }
-			;
-
-_ArgList:	_ArgList COMMA Arg										{  $$ = $1; $$->push_back($3);   }	 
-			| Arg													{  $$ = new AST::ArgList(); $$->push_back($1);   }
-			;
-
-Arg:		VarType IDENTIFIER										{  $$ = new AST::Arg($1,*$2);   }
-			| VarType												{  $$ = new AST::Arg($1);   }
-			;
-
-Block:		LBRACE Stmts RBRACE										{  $$ = new AST::Block($2);   }
-			;
-
-Stmts:		Stmts Stmt      										{  $$ = $1; if ($2 != NULL) $$->push_back($2);   }	
-			|														{  $$ = new AST::Stmts();   }
-			;
-
-Stmt:		Expr SEMI												{  $$ = $1;   }
-			| IfStmt												{  $$ = $1;   }
-			| ForStmt												{  $$ = $1;   }
-			| WhileStmt												{  $$ = $1;   }
+Statement:	Expr SEMI	{$$ = $1;}
+			| IfStmt	{$$ = $1;}
+			| ForStmt	{$$ = $1;}
+			| WhileStmt	{$$ = $1;}
 			| DoStmt												{  $$ = $1;   }
 			| SwitchStmt											{  $$ = $1;   } 
 			| BreakStmt												{  $$ = $1;   }

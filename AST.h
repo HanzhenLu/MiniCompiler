@@ -55,7 +55,7 @@ class ArgList: public Node{
     std::vector<VarType*> Types;
     std::vector<std::string> Names;
 public:
-    void Add(VarType _Type, std::string _Name);
+    void Add(VarType* _Type, std::string _Name);
 };
 
 class Var: public Node{
@@ -74,20 +74,23 @@ class VarType: public Node{
     void* Type;
 };
 
+enum TypeIndex{
+    INT,
+    SHORT,
+    LONG,
+    FLOAT,
+    DOUBLE,
+    CHAR,
+    BOOL,
+    VOID
+};
+
 class BuildInType: public VarType{
-    enum TypeIndex{
-        INT,
-        SHORT,
-        LONG,
-        FLOAT,
-        DOUBLE,
-        CHAR,
-        BOOL,
-        VOID
-    };
     enum TypeIndex Index;
     BuildInType(enum TypeIndex _Index);
 };
+
+enum TypeIndex a = INT;
 
 class RenameType: public VarType{
     std::string name;
@@ -95,17 +98,21 @@ class RenameType: public VarType{
 };
 
 class StructType: public VarType{
-    std::vector<VarType*> Types;
-    std::vector<std::string> Names;
+    std::vector<VarDefinition*> VarDefinitions;
 public:
-    void Add(VarType* _Type, std::string _Name);
+    void Add(VarDefinition* _VarDefinition);
+};
+
+class EnumDefinition: public Definition{
+    std::string Name;
+    int Value;
+    EnumDefinition(std::string _Name, int _Value);
 };
 
 class EnumType: public VarType{
-    std::vector<std::string> Names;
-    std::vector<int> Values;
+    std::vector<EnumDefinition*> EnumDefinitions;
 public:
-    void Add(std::string _Name, int Values);
+    void Add(EnumDefinition* _EnumDefinition);
 };
 
 class Expression: public Node{
@@ -347,17 +354,18 @@ class Assign: public Expression{
     Assign(Expression* _Target, Expression* _Object);
 };
 
+union value{
+    int i;
+    short s;
+    long l;
+    float f;
+    double d;
+    char c;
+    bool b;
+};
+
 class Constant: public Expression{
     BuildInType::VarType Type;
-    union value{
-        int i;
-        short s;
-        long l;
-        float f;
-        double d;
-        char c;
-        bool b;
-    };
     union value Value;
     Constant(bool b);
     Constant(short s);
