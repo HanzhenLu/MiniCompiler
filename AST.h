@@ -7,6 +7,7 @@ class Definition;
 
 class Program: public Node{
     std::vector<Definition*>* Definitions;
+public:
     Program(std::vector<Definition*>* _Definitions);
 };
 
@@ -17,15 +18,10 @@ class Definition: public Statement{
 
 };
 
-class TypeDefinition: public Definition{
-    VarType* Type;
-    std::string* Alias;
-    TypeDefinition(VarType* _Type, std::string* _Alias);
-};
-
 class FunName: public Node{
     std::string* Name;
     int PointerDim;
+public:
     FunName(std::string* _Name, int _PointerDim);
 };
 
@@ -41,12 +37,14 @@ class FunDefinition: public Definition{
     FunName* Name;
     ArgList* Args;
     std::vector<Statement*>* Statements;
+public:
     FunDefinition(VarType* _ReturnType, FunName* _FunNam, ArgList* _Args, std::vector<Statement*>* _Statements);
 };
 
 class VarDefinition: public Definition{
     VarType* Type;
     std::vector<Var*>* List;
+public:
     VarDefinition(VarType* _Type, std::vector<Var*>* _List);
 };
 
@@ -61,8 +59,8 @@ class Var: public Node{
     int PointerDim;
     std::vector<int> ArrayDim;
     std::string* Name;
-    Var(std::string* _Name);
 public:
+    Var(std::string* _Name);
     void SetPointer(int dim);
     void AddArray(int size);
 };
@@ -72,26 +70,20 @@ class VarType: public Node{
 };
 
 enum TypeIndex{
-    INT,
-    SHORT,
-    LONG,
-    FLOAT,
-    DOUBLE,
-    CHAR,
-    BOOL,
-    VOID
+    _INT_,
+    _SHORT_,
+    _LONG_,
+    _FLOAT_,
+    _DOUBLE_,
+    _CHAR_,
+    _BOOL_,
+    _VOID_
 };
 
 class BuildInType: public VarType{
     enum TypeIndex Index;
+public:
     BuildInType(enum TypeIndex _Index);
-};
-
-enum TypeIndex a = INT;
-
-class RenameType: public VarType{
-    std::string* Name;
-    RenameType(std::string* _name);
 };
 
 class StructType: public VarType{
@@ -103,6 +95,7 @@ public:
 class EnumDefinition: public Definition{
     std::string* Name;
     int Value;
+public:
     EnumDefinition(std::string* _Name, int _Value);
 };
 
@@ -117,26 +110,30 @@ class Expression: public Statement{
 };
 
 class Block: public Statement{
-    Statement* statements;
-    Block(Statement* _statements);
+    std::vector<Statement*>* statements;
+public:
+    Block(std::vector<Statement*>* _statements);
 };
 
 class IfStatement: public Statement{
     Expression* Condition;
     Statement* True;
     Statement* False;
+public:
     IfStatement(Expression* _Condition, Statement* _True, Statement* _False);
 };
 
 class WhileStatement: public Statement{
     Expression* Condition;
     Statement* Loop;
+public:
     WhileStatement(Expression* _Condition, Statement* _Loop);
 };
 
 class DoWhileStatement: public Statement{
     Expression* Condition;
     Statement* Loop;
+public:
     DoWhileStatement(Expression* _Condition, Statement* _Loop);
 };
 
@@ -145,6 +142,7 @@ class ForStatement: public Statement{
     Expression* Condition;
     Statement* Collection;
     Statement* Loop;
+public:
     ForStatement(std::vector<Statement*>* _Initialization, Expression* _Condition, Statement* _Collection, Statement* _Loop);
 };
 
@@ -157,172 +155,202 @@ class BreakStatement: public Statement{
 
 class ReturnStatement: public Statement{
     Expression* ReturnValue;
+public:
     ReturnStatement(Expression* _ReturnValue);
 };
 
 class GetItem: public Expression{
-    Var* Array;
+    Expression* Array;
     Expression* Index;
-    GetItem(Var* _Array, Expression* _Index);
+public:
+    GetItem(Expression* _Array, Expression* _Index);
 };
 
 class FunctionCall: public Expression{
     std::string* FunName;
     std::vector<Expression*>* Args;
+public:
     FunctionCall(std::string* _FunName, std::vector<Expression*>* _Args);
 };
 
 class Component: public Expression{
     Expression* Structure;
     std::string* ComponentName;
+public:
     Component(Expression* _Structure, std::string* _ComponentName);
 };
 
 class PtrComponent: public Expression{
     Expression* PtrStructure;
     std::string* ComponentName;
+public:
     PtrComponent(Expression* _PtrStructure, std::string* _ComponentName);
 };
 
 class PositiveSign: public Expression{
     Expression* Operand;
+public:
     PositiveSign(Expression* _Operand);
 };
 
 class NegativeSign: public Expression{
     Expression* Operand;
+public:
     NegativeSign(Expression* _Operand);
 };
 
 class Increment: public Expression{
     Expression* Operand;
+public:
     Increment(Expression* _Operand);
 };
 
 class Decrement: public Expression{
     Expression* Operand;
+public:
     Decrement(Expression* _Operand);
 };
 
 class ValueOf: public Expression{
     Expression* Operand;
+public:
     ValueOf(Expression* _Operand);
 };
 
 class AddressOf: public Expression{
     Expression* Operand;
+public:
     AddressOf(Expression* _Operand);
 };
 
 class LogicNot: public Expression{
     Expression* Operand;
+public:
     LogicNot(Expression* _Operand);
 };
 
 class BitWiseNot: public Expression{
     Expression* Operand;
+public:
     BitWiseNot(Expression* _Operand);
 };
 
 class LogicAnd: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     LogicAnd(Expression* A, Expression*B);
 };
 
 class BitWiseAnd: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     BitWiseAnd(Expression* A, Expression*B);
 };
 
 class LogicOr: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     LogicOr(Expression* A, Expression*B);
 };
 
 class BitWiseOr: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     BitWiseOr(Expression* A, Expression*B);
 };
 
 class LogicXor: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     LogicXor(Expression* A, Expression*B);
 };
 
 class BitWiseXor: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     BitWiseXor(Expression* A, Expression*B);
 };
 
 class Div: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     Div(Expression* _A, Expression* _B);
 };
 
 class Mul: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     Mul(Expression* _A, Expression* _B);
 };
 
 class Mod: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     Mod(Expression* _A, Expression* _B);
 };
 
 class Add: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     Add(Expression* _A, Expression* _B);
 };
 
 class Sub: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     Sub(Expression* _A, Expression* _B);
 };
 
 class GT: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     GT(Expression* _A, Expression* _B);
 };
 
 class GE: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     GE(Expression* _A, Expression* _B);
 };
 
 class LT: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     LT(Expression* _A, Expression* _B);
 };
 
 class LE: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     LE(Expression* _A, Expression* _B);
 };
 
 class EQ: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     EQ(Expression* _A, Expression* _B);
 };
 
 class NEQ: public Expression{
     Expression* OperandA;
     Expression* OperandB;
+public:
     NEQ(Expression* _A, Expression* _B);
 };
 
@@ -330,12 +358,14 @@ class Conditional: public Expression{
     Expression* Condition;
     Expression* ValueTrue;
     Expression* ValueFalse;
+public:
     Conditional(Expression* _Condition, Expression* _ValueTrue, Expression* _ValueFalse);
 };
 
 class Assign: public Expression{
     Expression* Target;
     Expression* Object;
+public:
     Assign(Expression* _Target, Expression* _Object);
 };
 
@@ -349,18 +379,22 @@ union value{
 class Constant: public Expression{
     TypeIndex Type;
     union value Value;
+public:
     Constant(bool b);
     Constant(int i);
     Constant(double d);
     Constant(char c);
+    Constant();
 };
 
 class Variable: public Expression{
     std::string* Name;
+public:
     Variable(std::string* _Name);
 };
 
-class StrVar: public Expression{
+class StrVar: public Constant{
     std::string* Value;
+public:
     StrVar(std::string* _Value);
 };

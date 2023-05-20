@@ -4,8 +4,6 @@
 
 Program::Program(std::vector<Definition*>* _Definitions):Definitions(_Definitions){}
 
-TypeDefinition::TypeDefinition(VarType* _Type, std::string* _Alias):Type(_Type),Alias(_Alias){}
-
 FunName::FunName(std::string* _Name, int _PointerDim):Name(_Name),PointerDim(_PointerDim){}
 
 void Star::Add(){
@@ -37,8 +35,6 @@ void Var::AddArray(int size){
 
 BuildInType::BuildInType(enum TypeIndex _Index):Index(_Index){}
 
-RenameType::RenameType(std::string* _name):Name(_name){}
-
 void StructType::Add(VarDefinition* _VarDefinition){
     VarDefinitions.push_back(_VarDefinition);
 }
@@ -49,7 +45,7 @@ void EnumType::Add(EnumDefinition* _EnumDefinition){
     EnumDefinitions.push_back(_EnumDefinition);
 }
 
-Block::Block(Statement* _statements):statements(_statements){}
+Block::Block(std::vector<Statement*>* _statements):statements(_statements){}
 
 IfStatement::IfStatement(Expression* _Condition, Statement* _True, Statement* _False):Condition(_Condition),True(_True),False(_False){}
 
@@ -61,7 +57,7 @@ ForStatement::ForStatement(std::vector<Statement*>* _Initialization, Expression*
 
 ReturnStatement::ReturnStatement(Expression* _ReturnValue): ReturnValue(_ReturnValue){}
 
-GetItem::GetItem(Var* _Array, Expression* _Index):Array(_Array), Index(_Index){}
+GetItem::GetItem(Expression* _Array, Expression* _Index):Array(_Array), Index(_Index){}
 
 FunctionCall::FunctionCall(std::string* _FunName, std::vector<Expression*>* _Args):FunName(_FunName),Args(_Args){}
 
@@ -123,19 +119,19 @@ Conditional::Conditional(Expression* _Condition, Expression* _ValueTrue, Express
 
 Assign::Assign(Expression* _Target, Expression* _Object):Target(_Target),Object(_Object){}
 
-Constant::Constant(bool b):Type(BOOL){
+Constant::Constant(bool b):Type(_BOOL_){
     Value.b = b;
 }
 
-Constant::Constant(int i):Type(INT){
+Constant::Constant(int i):Type(_INT_){
     Value.i = i;
 }
 
-Constant::Constant(double d):Type(DOUBLE){
+Constant::Constant(double d):Type(_DOUBLE_){
     Value.d = d;
 }
 
-Constant::Constant(char c):Type(CHAR){
+Constant::Constant(char c):Type(_CHAR_){
     Value.c = c;
 }
 

@@ -1,5 +1,5 @@
 %{
-#include "y.tab.h"
+#include "Paser.tab.hpp"
 #include <stdio.h>
 #include <string>
 #include <iostream>
@@ -64,7 +64,6 @@ char Escape2Char(char ch){
 "?"														{return QUES;}
 ":"														{return COLON;}
 "struct"												{return STRUCT;}
-"typedef"												{return TYPEDEF;}
 "enum"													{return ENUM;}
 "if"													{return IF;}
 "else"													{return ELSE;}
