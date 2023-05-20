@@ -92,7 +92,6 @@ char Escape2Char(char ch){
 "true"													{return TRUE; }
 "false"													{return FALSE; }
 "break"													{return BREAK; }
-"sizeof"												{return SIZEOF; }
 "bool"													{return BOOL; }
 "short"													{return SHORT; }    //
 "int"													{return INT; }      //

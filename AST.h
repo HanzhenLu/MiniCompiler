@@ -1,5 +1,4 @@
-#include <iostream>
-#include <vector>
+#pragma once
 
 class Node{
 };
@@ -27,7 +26,7 @@ class TypeDefinition: public Definition{
 class FunName: public Node{
     std::string Name;
     int PointerDim;
-    FunName(std::string _Name, int _PointDim);
+    FunName(std::string _Name, int _PointerDim);
 };
 
 class Star: public Node{
@@ -38,7 +37,7 @@ public:
 };
 
 class FunDefinition: public Definition{
-    VarType* RetrurnType;
+    VarType* ReturnType;
     FunName* Name;
     ArgList* Args;
     std::vector<Statement*>* Statements;
@@ -59,15 +58,13 @@ public:
 };
 
 class Var: public Node{
-    bool Pointer;
-    bool Array;
     int PointerDim;
     std::vector<int> ArrayDim;
     std::string Name;
     Var(std::string _Name);
 public:
     void SetPointer(int dim);
-    void AddArray(int _Size);
+    void AddArray(int size);
 };
 
 class VarType: public Node{
@@ -93,7 +90,7 @@ class BuildInType: public VarType{
 enum TypeIndex a = INT;
 
 class RenameType: public VarType{
-    std::string name;
+    std::string Name;
     RenameType(std::string _name);
 };
 
@@ -115,7 +112,7 @@ public:
     void Add(EnumDefinition* _EnumDefinition);
 };
 
-class Expression: public Node{
+class Expression: public Statement{
 
 };
 
@@ -128,27 +125,27 @@ class IfStatement: public Statement{
     Expression* Condition;
     Statement* True;
     Statement* False;
-    IfStatement(Expression* _Condition, Statement* _True, Statement* _Falsee);
+    IfStatement(Expression* _Condition, Statement* _True, Statement* _False);
 };
 
 class WhileStatement: public Statement{
     Expression* Condition;
     Statement* Loop;
-    WhileStatement(Expression* _Condition, Statement* Loop);
+    WhileStatement(Expression* _Condition, Statement* _Loop);
 };
 
 class DoWhileStatement: public Statement{
     Expression* Condition;
     Statement* Loop;
-    DoWhileStatement(Expression* _Condition, Statement* Loop);
+    DoWhileStatement(Expression* _Condition, Statement* _Loop);
 };
 
 class ForStatement: public Statement{
-    Statement* Initialization;
+    std::vector<Statement*>* Initialization;
     Expression* Condition;
     Statement* Collection;
     Statement* Loop;
-    ForStatement(Statement* _Initialization, Expression* _Condition, Statement* _Collection, Statement* _Loop);
+    ForStatement(std::vector<Statement*>* _Initialization, Expression* _Condition, Statement* _Collection, Statement* _Loop);
 };
 
 class ContinueStatement: public Statement{
@@ -166,7 +163,7 @@ class ReturnStatement: public Statement{
 class GetItem: public Expression{
     Var* Array;
     Expression* Index;
-    GetItem(Var* _Array, Expression* Index);
+    GetItem(Var* _Array, Expression* _Index);
 };
 
 class FunctionCall: public Expression{
@@ -197,14 +194,14 @@ class NegativeSign: public Expression{
     NegativeSign(Expression* _Operand);
 };
 
-class AutoIncrement: public Expression{
+class Increment: public Expression{
     Expression* Operand;
-    AutoIncrement(Expression* _Operand);
+    Increment(Expression* _Operand);
 };
 
-class AutoDecrement: public Expression{
+class Decrement: public Expression{
     Expression* Operand;
-    AutoDecrement(Expression* _Operand);
+    Decrement(Expression* _Operand);
 };
 
 class ValueOf: public Expression{
@@ -261,18 +258,6 @@ class BitWiseXor: public Expression{
     Expression* OperandA;
     Expression* OperandB;
     BitWiseXor(Expression* A, Expression*B);
-};
-
-class LogicAnd: public Expression{
-    Expression* OperandA;
-    Expression* OperandB;
-    LogicAnd(Expression* A, Expression*B);
-};
-
-class BitWiseAnd: public Expression{
-    Expression* OperandA;
-    Expression* OperandB;
-    BitWiseAnd(Expression* A, Expression*B);
 };
 
 class Div: public Expression{
@@ -345,7 +330,7 @@ class Conditional: public Expression{
     Expression* Condition;
     Expression* ValueTrue;
     Expression* ValueFalse;
-    Conditional(Expression* _Condition, Expression* ValueTrue, Expression* ValueFalse);
+    Conditional(Expression* _Condition, Expression* _ValueTrue, Expression* _ValueFalse);
 };
 
 class Assign: public Expression{
@@ -356,22 +341,26 @@ class Assign: public Expression{
 
 union value{
     int i;
-    short s;
-    long l;
-    float f;
     double d;
     char c;
     bool b;
 };
 
 class Constant: public Expression{
-    BuildInType::VarType Type;
+    TypeIndex Type;
     union value Value;
     Constant(bool b);
-    Constant(short s);
-    Constant(long l);
-    Constant(float f);
+    Constant(int i);
     Constant(double d);
     Constant(char c);
-    Constant(bool b);
+};
+
+class Variable: public Expression{
+    std::string Name;
+    Variable(std::string _Name);
+};
+
+class StrVar: public Expression{
+    std::string Value;
+    StrVar(std::string _Value);
 };

@@ -44,19 +44,24 @@ Program *Root;
 	WhileStatement* whilestatement;
 	DoWhileStatement* dowhilestatement;
 	ForStatement* forstatement;
+	ContinueStatement* continuestatement;
+	BreakStatement* breakstatement;
+	ReturnStatement* returnstatement;
+	Expression* expression;
+	Constant* constant;
+	std::vector<Expression*>* args;
 }
 
 %token  COMMA DOT SEMI QUES COLON
 		LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
-		SHLEQ SHL SHREQ SHR
 		EQ GE GT LE LT NEQ NOT ASSIGN
-		AND BANDEQ BAND OR BOREQ BOR
-		ARW BXOREQ BXOR BNOT
-		DADD ADDEQ ADD DSUB SUBEQ SUB
-		MULEQ MUL DIVEQ DIV MODEQ MOD
+		AND BAND OR BOR
+		ARW BXOR BNOT
+		DADD ADD DSUB SUB
+		MUL DIV MOD
 		STRUCT TYPEDEF ENUM
-		IF ELSE FOR WHILE DO SWITCH CASE DEFAULT 
-		BREAK CONTINUE RETURN SIZEOF TRUE FALSE
+		IF ELSE FOR WHILE DO
+		BREAK CONTINUE RETURN TRUE FALSE
 		BOOL SHORT INT LONG CHAR FLOAT DOUBLE VOID
 		
 %token<iVal> INTEGER
@@ -77,33 +82,28 @@ Program *Root;
 %type<buildintype>	BuiltInType
 %type<enumtype> EnumList, EnumAssign
 %type<structtype>	StructList
-%type<memList>							MemList _MemList	
 %type<statement>	Statement
-%type<ifStmt>							IfStmt
-%type<forStmt>							ForStmt
-%type<whileStmt>						WhileStmt
-%type<doStmt>							DoStmt
-%type<switchStmt>						SwitchStmt
-%type<caseList>							CaseList
-%type<caseStmt>							CaseStmt
-%type<breakStmt>						BreakStmt
-%type<continueStmt>						ContinueStmt
-%type<returnStmt>						ReturnStmt
+%type<ifstatement>	IfStatement
+%type<forstatement>	ForStatement
+%type<whilestatement>	WhileStatement
+%type<dowhilestatement>	DoWhileStatement
+%type<breakstatement>	BreakStatement
+%type<continuestatement>	ContinueStatement
+%type<returnstatement>	ReturnStatement
 %type<block>	Block
-%type<arg>								Arg
 %type<arglist>	ArgList
 %type<var>	Var
 %type<varlist>	VarList
-%type<expr>								Expr	
-%type<constant>							Constant
-%type<exprList>							ExprList _ExprList
+%type<expression>	Expression
+%type<constant>	Constant
+%type<args>	Args
 
 %nonassoc IF
 %nonassoc ELSE
 
 %left	COMMA //15
 %left	FUNC_CALL_ARG_LIST
-%right	ASSIGN ADDEQ SUBEQ MULEQ DIVEQ MODEQ SHLEQ SHREQ BANDEQ BOREQ BXOREQ //14
+%right	ASSIGN//14
 %right	QUES COLON //13
 %left	OR//12
 %left	AND//11
@@ -112,10 +112,9 @@ Program *Root;
 %left	BAND//8
 %left	EQ NEQ//7
 %left	GE GT LE LT//6
-%left	SHL SHR//5
 %left	ADD SUB//4
 %left	MUL DIV MOD//3
-%right	DADD DSUB NOT BNOT SIZEOF//2
+%right	DADD DSUB NOT BNOT//2
 %left	DOT ARW//1
 
 %start Program
@@ -143,11 +142,11 @@ Star:	Star MUL	{$$ = $1; $$->Add();}
 		|	{$$ = new Star();}
 		;
 
-VarDefinition:	VarType VarList	SEMI   									{$$ = new AST::VarDecl($1,$2);}
+VarDefinition:	VarType VarList	SEMI	{$$ = new AST::VarDecl($1,$2);}
 			;
 
 VarList:	VarList COMMA Var	{$$ = $1; $$->push_back($3);}
-			| Var	{$$ = new std::vector<Var*>; $$->push_back($1);}											
+			| Var	{$$ = new std::vector<Var*>; $$->push_back($1);}
 			|	{$$ = new std::vector<Var*>;}
 			;
 
@@ -201,125 +200,88 @@ Statements:	Statements Statement	{$$ = $1; $$->push_back($2);}
 			|	{$$ = new std::vector<Statement*>;}
 			;
 
-Statement:	Expr SEMI	{$$ = $1;}
-			| IfStmt	{$$ = $1;}
-			| ForStmt	{$$ = $1;}
-			| WhileStmt	{$$ = $1;}
-			| DoStmt												{  $$ = $1;   }
-			| SwitchStmt											{  $$ = $1;   } 
-			| BreakStmt												{  $$ = $1;   }
-			| ContinueStmt											{  $$ = $1;   }
-			| ReturnStmt											{  $$ = $1;   }
-			| Block													{  $$ = $1;   }
-			| VarDecl												{  $$ = $1;   }
-			| TypeDecl												{  $$ = $1;   }
-			| SEMI													{  $$ = NULL;   }
+Statement:	Expression SEMI	{$$ = $1;}
+			| IfStatement	{$$ = $1;}
+			| ForStatement	{$$ = $1;}
+			| WhileStatement	{$$ = $1;}
+			| DoWhileStatement	{$$ = $1;}
+			| BreakStatement	{$$ = $1;}
+			| ContinueStatement	{$$ = $1;}
+			| ReturnStatement	{$$ = $1;}
+			| Block	{$$ = $1;}
+			| VarDefinition	{$$ = $1;}
+			| TypeDefinition	{$$ = $1;}
+			| SEMI	{$$ = NULL;}
 			;
 
-IfStmt:		IF LPAREN Expr RPAREN Stmt ELSE Stmt					{  $$ = new AST::IfStmt($3,$5,$7);   }
-			| IF LPAREN Expr RPAREN Stmt         					{  $$ = new AST::IfStmt($3,$5);   }
+IfStatement:IF LPAREN Expression RPAREN Statements ELSE Statements	{$$ = new IfStatement($3,$5,$7);   }
+			| IF LPAREN Expression RPAREN Statements	{$$ = new IfStatement($3,$5,NULL);}
 			;
 
-ForStmt:	FOR LPAREN Expr SEMI Expr SEMI Expr RPAREN Stmt			{  $$ = new AST::ForStmt($3,$5,$7,$9);   }
-            | FOR LPAREN VarDecl Expr SEMI Expr RPAREN Stmt			{  $$ = new AST::ForStmt($3,$4,$6,$8);   }
+ForStatement:	FOR LPAREN Statements SEMI Expression SEMI Expression RPAREN Statement	{$$ = new ForStatement($3,$5,$7,$9);}
+				;
+
+WhileStatement:	WHILE LPAREN Expression RPAREN Statement	{$$ = new WhileStatement($3,$5);}
 			;
 
-WhileStmt:	WHILE LPAREN Expr RPAREN Stmt							{  $$ = new AST::WhileStmt($3,$5);   }
+DoWhileStatement:	DO Statement WHILE LPAREN Expression RPAREN SEMI					{$$ = new DoWhileStatement($2,$5);}
 			;
 
-DoStmt:		DO Stmt WHILE LPAREN Expr RPAREN SEMI					{  $$ = new AST::DoStmt($2,$5);   }
+ContinueStatement:	CONTINUE SEMI	{$$ = new ContinueStatement();}
 			;
 
-SwitchStmt:	SWITCH LPAREN Expr RPAREN LBRACE CaseList RBRACE		{  $$ = new AST::SwitchStmt($3,$6);   }
+BreakStatement:	BREAK SEMI	{$$ = new BreakStatement();}
 			;
 
-CaseList:	CaseList CaseStmt										{  $$ = $1; $$->push_back($2);   }	
-			|														{  $$ = new AST::CaseList();   }
+ReturnStatement:	RETURN SEMI	{$$ = new ReturnStatement(NULL);}
+					| RETURN Expression SEMI	{$$ = new ReturnStatement($2);}
+					;
+
+Expression:	Expression LBRACKET Expression RBRACKET %prec ARW	{$$ = new GetItem($1,$3);}
+			| IDENTIFIER LPAREN Args RPAREN	{$$ = new FunctionCall($1,$3);}
+			| Expression DOT IDENTIFIER	{$$ = new Component($1,$3);}
+			| Expression ARW IDENTIFIER	{$$ = new PtrComponent($1,$3);}
+			| ADD Expression	%prec NOT	{$$ = new PositiveSign($2);}
+			| SUB Expression	%prec NOT	{$$ = new NegativeSign($2);}
+			| Expression DADD 	%prec ARW	{$$ = new Increment($1);}
+			| Expression DSUB	%prec ARW	{$$ = new Decrement($1);}
+			| MUL Expression	%prec NOT	{$$ = new ValueOf($2);}
+			| BAND Expression	%prec NOT	{$$ = new AddressOf($2);}
+			| NOT Expression	{$$ = new LogicNot($2);}
+			| BNOT Expression	{$$ = new BitwiseNot($2);}
+			| Expression DIV Expression	{$$ = new Div($1,$3);}
+			| Expression MUL Expression	{$$ = new Mul($1,$3);} 
+			| Expression MOD Expression	{$$ = new Mod($1,$3);}
+			| Expression ADD Expression	{$$ = new Add($1,$3);} 
+			| Expression SUB Expression	{$$ = new Sub($1,$3);} 
+			| Expression GT Expression	{$$ = new GT($1,$3);} 
+			| Expression GE Expression	{$$ = new GE($1,$3);} 
+			| Expression LT Expression	{$$ = new LT($1,$3);} 
+			| Expression LE Expression	{$$ = new LE($1,$3);} 
+			| Expression EQ Expression	{$$ = new EQ($1,$3);} 
+			| Expression NEQ Expression	{$$ = new NEQ($1,$3);} 
+			| Expression BAND Expression	{$$ = new BitWiseAND($1,$3);}
+			| Expression BXOR Expression	{$$ = new BitwiseXOR($1,$3);}
+			| Expression BOR Expression	{$$ = new BitWiseOR($1,$3);} 
+			| Expression AND Expression	{$$ = new AND($1,$3);} 
+			| Expression OR Expression	{$$ = new OR($1,$3);} 
+			| Expression QUES Expression COLON Expression	{$$ = new Conditional($1,$3,$5);}
+			| Expression ASSIGN Expression	{$$ = new Assign($1,$3);} 
+			| LPAREN Expression RPAREN	{$$ = $2;}
+			| IDENTIFIER	{$$ = new Variable($1);} 
+			| Constant	{$$ = $1;}
 			;
 
-CaseStmt:	CASE Expr COLON Stmts									{  $$ = new AST::CaseStmt($2,$4);   }
-			| DEFAULT COLON Stmts									{  $$ = new AST::CaseStmt(NULL,$3);   }
+Args:	Args COMMA Expression	{$$ = $1; $$->push_back($3);}
+			| Expression %prec FUNC_CALL_ARG_LIST	{$$ = new std::vector<Expression*>;$$->push_back($1);}
+			|	{$$ = new std::vector<Expression*>;}
 			;
 
-
-ContinueStmt:CONTINUE SEMI											{  $$ = new AST::ContinueStmt();   }
-			;
-
-BreakStmt:	BREAK SEMI												{  $$ = new AST::BreakStmt();   }
-			;
-
-ReturnStmt: RETURN SEMI 											{  $$ = new AST::ReturnStmt();   }
-			| RETURN Expr SEMI										{  $$ = new AST::ReturnStmt($2);   }
-			;
-
-Expr:		Expr LBRACKET Expr RBRACKET %prec ARW					{  $$ = new AST::Subscript($1,$3);   }
-			| SIZEOF LPAREN IDENTIFIER RPAREN						{  $$ = new AST::SizeOf(*$3);   }
-			| SIZEOF LPAREN Expr RPAREN								{  $$ = new AST::SizeOf($3);   }
-			| SIZEOF LPAREN VarType RPAREN							{  $$ = new AST::SizeOf($3);   }
-			| IDENTIFIER LPAREN ExprList RPAREN						{  $$ = new AST::FunctionCall(*$1,$3);   }
-			| Expr DOT IDENTIFIER									{  $$ = new AST::StructReference($1,*$3);   }
-			| Expr ARW IDENTIFIER									{  $$ = new AST::StructDereference($1,*$3);   }
-			| ADD Expr	%prec NOT									{  $$ = new AST::UnaryPlus($2);   }
-			| SUB Expr	%prec NOT									{  $$ = new AST::UnaryMinus($2);   }
-			| LPAREN VarType RPAREN Expr %prec NOT					{  $$ = new AST::TypeCast($2,$4);   }
-			| DADD Expr	%prec NOT									{  $$ = new AST::PrefixInc($2);   }
-			| Expr DADD %prec ARW									{  $$ = new AST::PostfixInc($1);   }
-			| DSUB Expr %prec NOT									{  $$ = new AST::PrefixDec($2);   }
-			| Expr DSUB	%prec ARW									{  $$ = new AST::PostfixDec($1);   }
-			| MUL Expr	%prec NOT									{  $$ = new AST::Indirection($2);   }
-			| BAND Expr	%prec NOT									{  $$ = new AST::AddressOf($2);   }
-			| NOT Expr												{  $$ = new AST::LogicNot($2);   }
-			| BNOT Expr												{  $$ = new AST::BitwiseNot($2);   }
-			| Expr DIV Expr											{  $$ = new AST::Division($1,$3);   }
-			| Expr MUL Expr											{  $$ = new AST::Multiplication($1,$3);   } 
-			| Expr MOD Expr 										{  $$ = new AST::Modulo($1,$3);   }
-			| Expr ADD Expr											{  $$ = new AST::Addition($1,$3);   } 
-			| Expr SUB Expr											{  $$ = new AST::Subtraction($1,$3);   } 
-			| Expr SHL Expr											{  $$ = new AST::LeftShift($1,$3);   } 
-			| Expr SHR Expr											{  $$ = new AST::RightShift($1,$3);   } 
-			| Expr GT Expr											{  $$ = new AST::LogicGT($1,$3);   } 
-			| Expr GE Expr											{  $$ = new AST::LogicGE($1,$3);   } 
-			| Expr LT Expr											{  $$ = new AST::LogicLT($1,$3);   } 
-			| Expr LE Expr											{  $$ = new AST::LogicLE($1,$3);   } 
-			| Expr EQ Expr											{  $$ = new AST::LogicEQ($1,$3);   } 
-			| Expr NEQ Expr											{  $$ = new AST::LogicNEQ($1,$3);   } 
-			| Expr BAND Expr										{  $$ = new AST::BitwiseAND($1,$3);   }
-			| Expr BXOR Expr										{  $$ = new AST::BitwiseXOR($1,$3);   }
-			| Expr BOR Expr											{  $$ = new AST::BitwiseOR($1,$3);   } 
-			| Expr AND Expr											{  $$ = new AST::LogicAND($1,$3);   } 
-			| Expr OR Expr											{  $$ = new AST::LogicOR($1,$3);   } 
-			| Expr QUES Expr COLON Expr								{  $$ = new AST::TernaryCondition($1,$3,$5);   }
-			| Expr ASSIGN Expr 										{  $$ = new AST::DirectAssign($1,$3);   } 
-			| Expr DIVEQ Expr 										{  $$ = new AST::DivAssign($1,$3);   } 
-			| Expr MULEQ Expr										{  $$ = new AST::MulAssign($1,$3);   }  
-			| Expr MODEQ Expr										{  $$ = new AST::ModAssign($1,$3);   } 
-			| Expr ADDEQ Expr										{  $$ = new AST::AddAssign($1,$3);   } 
-			| Expr SUBEQ Expr										{  $$ = new AST::SubAssign($1,$3);   } 
-			| Expr SHLEQ Expr										{  $$ = new AST::SHLAssign($1,$3);   } 
-			| Expr SHREQ Expr										{  $$ = new AST::SHRAssign($1,$3);   } 
-			| Expr BANDEQ Expr										{  $$ = new AST::BitwiseANDAssign($1,$3);   } 
-			| Expr BXOREQ Expr										{  $$ = new AST::BitwiseXORAssign($1,$3);   } 
-			| Expr BOREQ Expr										{  $$ = new AST::BitwiseORAssign($1,$3);   }
-			| LPAREN Expr RPAREN									{  $$ = $2;   }
-			| IDENTIFIER											{  $$ = new AST::Variable(*$1);   } 
-			| Constant												{  $$ = $1;   }												
-			| Expr COMMA Expr										{  $$ = new AST::CommaExpr($1, $3);   }
-			;
-
-ExprList:	_ExprList COMMA Expr									{  $$ = $1; $$->push_back($3);   }
-			| Expr %prec FUNC_CALL_ARG_LIST							{  $$ = new AST::ExprList(); $$->push_back($1);   }
-			|														{  $$ = new AST::ExprList();   }
-			;
-
-_ExprList:	_ExprList COMMA Expr 									{  $$ = $1; $$->push_back($3);   }
-			| Expr %prec FUNC_CALL_ARG_LIST							{  $$ = new AST::ExprList(); $$->push_back($1);   }
-			;
-
-Constant:	TRUE													{  $$ =  new AST::Constant(true);   }
-			| FALSE													{  $$ =  new AST::Constant(false);   }
-			| CHARACTER												{  $$ =  new AST::Constant($1);   }
-			| INTEGER 												{  $$ =  new AST::Constant($1);   }
-			| REAL													{  $$ =  new AST::Constant($1);   }
-			| STRING												{  $$ =  new AST::GlobalString(*$1);   }
+Constant:	TRUE	{$$ =  new Constant(true);}
+			| FALSE	{$$ =  new Constant(false);}
+			| CHARACTER	{$$ =  new Constant($1);}
+			| INTEGER {$$ =  new Constant($1);}
+			| REAL	{$$ =  new Constant($1);}
+			| STRING {$$ = new StrVar($1);}
 			;
 %%
