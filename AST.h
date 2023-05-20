@@ -19,14 +19,14 @@ class Definition: public Statement{
 
 class TypeDefinition: public Definition{
     VarType* Type;
-    std::string Alias;
-    TypeDefinition(VarType* _Type, std::string _Alias);
+    std::string* Alias;
+    TypeDefinition(VarType* _Type, std::string* _Alias);
 };
 
 class FunName: public Node{
-    std::string Name;
+    std::string* Name;
     int PointerDim;
-    FunName(std::string _Name, int _PointerDim);
+    FunName(std::string* _Name, int _PointerDim);
 };
 
 class Star: public Node{
@@ -52,16 +52,16 @@ class VarDefinition: public Definition{
 
 class ArgList: public Node{
     std::vector<VarType*> Types;
-    std::vector<std::string> Names;
+    std::vector<std::string*> Names;
 public:
-    void Add(VarType* _Type, std::string _Name);
+    void Add(VarType* _Type, std::string* _Name);
 };
 
 class Var: public Node{
     int PointerDim;
     std::vector<int> ArrayDim;
-    std::string Name;
-    Var(std::string _Name);
+    std::string* Name;
+    Var(std::string* _Name);
 public:
     void SetPointer(int dim);
     void AddArray(int size);
@@ -90,8 +90,8 @@ class BuildInType: public VarType{
 enum TypeIndex a = INT;
 
 class RenameType: public VarType{
-    std::string Name;
-    RenameType(std::string _name);
+    std::string* Name;
+    RenameType(std::string* _name);
 };
 
 class StructType: public VarType{
@@ -101,9 +101,9 @@ public:
 };
 
 class EnumDefinition: public Definition{
-    std::string Name;
+    std::string* Name;
     int Value;
-    EnumDefinition(std::string _Name, int _Value);
+    EnumDefinition(std::string* _Name, int _Value);
 };
 
 class EnumType: public VarType{
@@ -167,21 +167,21 @@ class GetItem: public Expression{
 };
 
 class FunctionCall: public Expression{
-    std::string FunName;
+    std::string* FunName;
     std::vector<Expression*>* Args;
-    FunctionCall(std::string _FunName, std::vector<Expression*>* _Args);
+    FunctionCall(std::string* _FunName, std::vector<Expression*>* _Args);
 };
 
 class Component: public Expression{
     Expression* Structure;
-    std::string ComponentName;
-    Component(Expression* _Structure, std::string _ComponentName);
+    std::string* ComponentName;
+    Component(Expression* _Structure, std::string* _ComponentName);
 };
 
 class PtrComponent: public Expression{
     Expression* PtrStructure;
-    std::string ComponentName;
-    PtrComponent(Expression* _PtrStructure, std::string _ComponentName);
+    std::string* ComponentName;
+    PtrComponent(Expression* _PtrStructure, std::string* _ComponentName);
 };
 
 class PositiveSign: public Expression{
@@ -356,11 +356,11 @@ class Constant: public Expression{
 };
 
 class Variable: public Expression{
-    std::string Name;
-    Variable(std::string _Name);
+    std::string* Name;
+    Variable(std::string* _Name);
 };
 
 class StrVar: public Expression{
-    std::string Value;
-    StrVar(std::string _Value);
+    std::string* Value;
+    StrVar(std::string* _Value);
 };

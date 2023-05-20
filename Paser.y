@@ -15,20 +15,18 @@ int yylex(void);
 Program *Root;
 %}
 
-%output "Parser.cpp"
-
 %union {
-    int iVal;
-    std::string sVal;
-    double dVal;
-    char cVal;
-    Program* program;
+	int iVal;
+	std::string* sVal;
+	double dVal;
+	char cVal;
+	Program* program;
 	std::vector<Definition*>* definitions;
 	Definition* definition;
 	FunDefinition* fundef;
 	VarDefinition* vardef;
 	TypeDefinition* typedefi;
-	std::vector<statements*>* statements;
+	std::vector<Statement*>* statements;
 	FunName* funname;
 	VarType* vartype;
 	ArgList* arglist;
@@ -65,7 +63,7 @@ Program *Root;
 		BOOL SHORT INT LONG CHAR FLOAT DOUBLE VOID
 		
 %token<iVal> INTEGER
-%token<sVal> IDENTIFIER, STRING
+%token<sVal> IDENTIFIER STRING
 %token<dVal> REAL
 %token<cVal> CHARACTER
 %type<program> Program	
@@ -80,7 +78,7 @@ Program *Root;
 %type<star> Star
 %type<var> Array
 %type<buildintype>	BuiltInType
-%type<enumtype> EnumList, EnumAssign
+%type<enumtype> EnumList EnumAssign
 %type<structtype>	StructList
 %type<statement>	Statement
 %type<ifstatement>	IfStatement
@@ -133,10 +131,10 @@ Definition:		FunDefinition	{$$ = $1;}
 				;
 
 FunDefinition:	VarType FunName LPAREN ArgList RPAREN SEMI	{$$ = new FunDefinition($1,$2,$4,NULL);}
-				| VarType FunName LPAREN ArgList RPAREN LBRACE Statements RBRACE	{$$ = new FunDefinition($1,$2,$4,$6);}
+				| VarType FunName LPAREN ArgList RPAREN LBRACE Statements RBRACE	{$$ = new FunDefinition($1,$2,$4,$7);}
 				;
 
-FunName:	Star IDENTIFIER	{$$ = new FunName($1, $2->GetDim()); delete $2;}
+FunName:	Star IDENTIFIER	{$$ = new FunName($2, $1->GetDim()); delete $1;}
 
 Star:	Star MUL	{$$ = $1; $$->Add();}
 		|	{$$ = new Star();}

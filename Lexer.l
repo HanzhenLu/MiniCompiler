@@ -39,10 +39,6 @@ char Escape2Char(char ch){
 "]"														{return RBRACKET;}
 "{"														{return LBRACE;}
 "}"														{return RBRACE;}
-"<<="													{return SHLEQ;}
-"<<"													{return SHL;}
-">>="													{return SHREQ;}
-">>"													{return SHR;}
 "=="													{return EQ;}
 ">="													{return GE;}
 ">"														{return GT;}
@@ -52,41 +48,29 @@ char Escape2Char(char ch){
 "!"														{return NOT;}
 "="														{return ASSIGN;}
 "&&"													{return AND;}
-"&="													{return BANDEQ;}
 "&"														{return BAND;}
 "||"													{return OR;}
-"|="													{return BOREQ;}
 "|"														{return BOR;}
 "->"													{return ARW;}
-"^="													{return BXOREQ;}
 "^"														{return BXOR;}
 "~"														{return BNOT;}
 "++"													{return DADD;}
-"+="													{return ADDEQ;}
 "+"														{return ADD;}
 "--"													{return DSUB;}
-"-="													{return SUBEQ;}
 "-"														{return SUB;}
-"*="													{return MULEQ;}
 "*"														{return MUL;}
-"/="													{return DIVEQ;}
 "/"														{return DIV;}
-"%="													{return MODEQ;}
 "%"														{return MOD;}
 "?"														{return QUES;}
 ":"														{return COLON;}
 "struct"												{return STRUCT;}
 "typedef"												{return TYPEDEF;}
-"const"													{return CONST;}
 "enum"													{return ENUM;}
 "if"													{return IF;}
 "else"													{return ELSE;}
 "for"													{return FOR;}
 "while"													{return WHILE;}
 "do"													{return DO;}
-"switch"												{return SWITCH;}
-"case"													{return CASE;}
-"default"												{return DEFAULT;}
 "continue"												{return CONTINUE;}
 "return"												{return RETURN;}
 "true"													{return TRUE; }
@@ -110,13 +94,13 @@ char Escape2Char(char ch){
 															return CHARACTER; 
 														}
 \"(\\.|[^"\\])*\"										{
-															yylval.strVal = new std::string("");
+															yylval.sVal = new std::string("");
 															for (int i = 1; i <= yyleng-2; i++)
 																if (yytext[i] == '\\'){
 																	i++;
-																	yylval.strVal->push_back(Escape2Char(yytext[i]));
+																	yylval.sVal->push_back(Escape2Char(yytext[i]));
 																}else{
-																	yylval.strVal->push_back(yytext[i]);
+																	yylval.sVal->push_back(yytext[i]);
 																}
 															return STRING;
 														}
