@@ -11,6 +11,7 @@ void yyerror(const char *s) {
 
 extern "C" int yylex();
 extern int yyparse(void);
+extern FILE *yyin;
 
 int yywrap()
 {
@@ -21,6 +22,7 @@ Program *Root;
 
 int main()
 {
+	yyin = fopen("input.txt","r");
 	yyparse();
 	return 0;
 }
