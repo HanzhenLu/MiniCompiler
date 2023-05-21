@@ -1,5 +1,3 @@
-#include <iostream>
-#include <vector>
 #include "AST.h"
 
 Program::Program(std::vector<Definition*>* _Definitions):Definitions(_Definitions){}
@@ -103,17 +101,17 @@ Mul::Mul(Expression* A, Expression*B):OperandA(A),OperandB(B){}
 
 Mod::Mod(Expression* A, Expression*B):OperandA(A),OperandB(B){}
 
-GT::GT(Expression* A, Expression*B):OperandA(A),OperandB(B){}
+Gt::Gt(Expression* A, Expression*B):OperandA(A),OperandB(B){}
 
-GE::GE(Expression* A, Expression*B):OperandA(A),OperandB(B){}
+Ge::Ge(Expression* A, Expression*B):OperandA(A),OperandB(B){}
 
-LT::LT(Expression* A, Expression*B):OperandA(A),OperandB(B){}
+Lt::Lt(Expression* A, Expression*B):OperandA(A),OperandB(B){}
 
-LE::LE(Expression* A, Expression*B):OperandA(A),OperandB(B){}
+Le::Le(Expression* A, Expression*B):OperandA(A),OperandB(B){}
 
-EQ::EQ(Expression* A, Expression*B):OperandA(A),OperandB(B){}
+Eq::Eq(Expression* A, Expression*B):OperandA(A),OperandB(B){}
 
-NEQ::NEQ(Expression* A, Expression*B):OperandA(A),OperandB(B){}
+Neq::Neq(Expression* A, Expression*B):OperandA(A),OperandB(B){}
 
 Conditional::Conditional(Expression* _Condition, Expression* _ValueTrue, Expression* _ValueFalse):Condition(_Condition),ValueFalse(_ValueFalse),ValueTrue(_ValueTrue){}
 

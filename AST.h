@@ -1,9 +1,15 @@
 #pragma once
+#include <iostream>
+#include <vector>
+
+class Definition;
+class VarType;
+class ArgList;
+class Var;
+class Program;
 
 class Node{
 };
-
-class Definition;
 
 class Program: public Node{
     std::vector<Definition*>* Definitions;
@@ -312,46 +318,46 @@ public:
     Sub(Expression* _A, Expression* _B);
 };
 
-class GT: public Expression{
+class Gt: public Expression{
     Expression* OperandA;
     Expression* OperandB;
 public:
-    GT(Expression* _A, Expression* _B);
+    Gt(Expression* _A, Expression* _B);
 };
 
-class GE: public Expression{
+class Ge: public Expression{
     Expression* OperandA;
     Expression* OperandB;
 public:
-    GE(Expression* _A, Expression* _B);
+    Ge(Expression* _A, Expression* _B);
 };
 
-class LT: public Expression{
+class Lt: public Expression{
     Expression* OperandA;
     Expression* OperandB;
 public:
-    LT(Expression* _A, Expression* _B);
+    Lt(Expression* _A, Expression* _B);
 };
 
-class LE: public Expression{
+class Le: public Expression{
     Expression* OperandA;
     Expression* OperandB;
 public:
-    LE(Expression* _A, Expression* _B);
+    Le(Expression* _A, Expression* _B);
 };
 
-class EQ: public Expression{
+class Eq: public Expression{
     Expression* OperandA;
     Expression* OperandB;
 public:
-    EQ(Expression* _A, Expression* _B);
+    Eq(Expression* _A, Expression* _B);
 };
 
-class NEQ: public Expression{
+class Neq: public Expression{
     Expression* OperandA;
     Expression* OperandB;
 public:
-    NEQ(Expression* _A, Expression* _B);
+    Neq(Expression* _A, Expression* _B);
 };
 
 class Conditional: public Expression{
@@ -384,7 +390,7 @@ public:
     Constant(int i);
     Constant(double d);
     Constant(char c);
-    Constant();
+    Constant(){}
 };
 
 class Variable: public Expression{

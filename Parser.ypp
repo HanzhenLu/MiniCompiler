@@ -1,0 +1,284 @@
+%{
+#include <string>
+#include <iostream>
+#include <vector>
+#include "AST.h"
+
+void yyerror(const char *s) {
+	std::cout << "Error: "<<s<<'\n';
+	exit(1); 
+}
+
+extern "C" int yylex();
+extern int yyparse(void);
+
+int yywrap()
+{
+	return 1;
+}
+
+Program *Root;
+%}
+
+%union {
+	int iVal;
+	std::string* sVal;
+	double dVal;
+	char cVal;
+	Program* program;
+	std::vector<Definition*>* definitions;
+	Definition* definition;
+	FunDefinition* fundef;
+	VarDefinition* vardef;
+	std::vector<Statement*>* statements;
+	FunName* funname;
+	VarType* vartype;
+	ArgList* arglist;
+	Star* star;
+	std::vector<Var*>* varlist; 
+	Var* var;
+	BuildInType* buildintype;
+	EnumType* enumtype;
+	EnumDefinition* enumdefinition;
+	StructType* structtype;
+	Block* block;
+	Statement* statement;
+	IfStatement* ifstatement;
+	WhileStatement* whilestatement;
+	DoWhileStatement* dowhilestatement;
+	ForStatement* forstatement;
+	ContinueStatement* continuestatement;
+	BreakStatement* breakstatement;
+	ReturnStatement* returnstatement;
+	Expression* expression;
+	Constant* constant;
+	std::vector<Expression*>* args;
+}
+
+%token  COMMA DOT SEMI QUES COLON
+		LPAREN RPAREN LBRACKET RBRACKET LBRACE RBRACE
+		EQ GE GT LE LT NEQ NOT ASSIGN
+		AND BAND OR BOR
+		ARW BXOR BNOT
+		DADD ADD DSUB SUB
+		MUL DIV MOD
+		STRUCT ENUM
+		IF ELSE FOR WHILE DO
+		BREAK CONTINUE RETURN TRUE FALSE
+		BOOL SHORT INT LONG CHAR FLOAT DOUBLE VOID
+		
+%token<iVal> INTEGER
+%token<sVal> IDENTIFIER STRING
+%token<dVal> REAL
+%token<cVal> CHARACTER
+%type<program> PROGRAM
+%type<definitions> DEFINITIONS 
+%type<definition>	DEFINITION
+%type<fundef>	FUNDEFINITION
+%type<statements>	STATEMENTS	
+%type<vardef>	VARDEFINITION
+%type<funname> FUNNAME
+%type<vartype>	VARTYP
+%type<star> STAR
+%type<var> ARRAY
+%type<buildintype>	BUILDINTYPE
+%type<enumtype> EnumList
+%type<enumdefinition> EnumAssign
+%type<structtype>	StructList
+%type<statement>	Statement
+%type<ifstatement>	IfStatement
+%type<forstatement>	ForStatement
+%type<whilestatement>	WhileStatement
+%type<dowhilestatement>	DoWhileStatement
+%type<breakstatement>	BreakStatement
+%type<continuestatement>	ContinueStatement
+%type<returnstatement>	ReturnStatement
+%type<block>	Block
+%type<arglist>	ArgList
+%type<var>	Var
+%type<varlist>	VarList
+%type<expression>	Expression
+%type<constant>	Constant
+%type<args>	Args
+
+%nonassoc IF
+%nonassoc ELSE
+
+%left	COMMA //15
+%left	FUNC_CALL_ARG_LIST
+%right	ASSIGN//14
+%right	QUES COLON //13
+%left	OR//12
+%left	AND//11
+%left	BOR//10
+%left	BXOR//9
+%left	BAND//8
+%left	EQ NEQ//7
+%left	GE GT LE LT//6
+%left	ADD SUB//4
+%left	MUL DIV MOD//3
+%right	DADD DSUB NOT BNOT//2
+%left	DOT ARW//1
+%left	LBRACKET
+
+%start PROGRAM
+%%
+//
+PROGRAM:	DEFINITIONS		{$$ = new Program($1); Root = $$;}
+			;
+			
+DEFINITIONS:	DEFINITIONS DEFINITION	{$$ = $1; $$->push_back($2);}
+				|	{$$ = new std::vector<Definition*>;}
+				;
+
+DEFINITION:		FUNDEFINITION	{$$ = $1;}
+				| VARDEFINITION		{$$ = $1;}
+				;
+
+FUNDEFINITION:	VARTYP FUNNAME LPAREN ArgList RPAREN SEMI	{$$ = new FunDefinition($1,$2,$4,NULL);}
+				| VARTYP FUNNAME LPAREN ArgList RPAREN LBRACE STATEMENTS RBRACE	{$$ = new FunDefinition($1,$2,$4,$7);}
+				;
+
+FUNNAME:	STAR IDENTIFIER	{$$ = new FunName($2, $1->GetDim()); delete $1;}
+
+STAR:	STAR MUL	{$$ = $1; $$->Add();}
+		|	{$$ = new Star();}
+		;
+
+VARDEFINITION:	VARTYP VarList	SEMI	{$$ = new VarDefinition($1,$2);}
+			;
+
+VarList:	VarList COMMA Var	{$$ = $1; $$->push_back($3);}
+			| Var	{$$ = new std::vector<Var*>; $$->push_back($1);}
+			|	{$$ = new std::vector<Var*>;}
+			;
+
+Var:	STAR ARRAY	{$$ = $2; $$->SetPointer($1->GetDim()); delete $1;}
+		;
+
+ARRAY: 	ARRAY LBRACKET INTEGER RBRACKET	{$$ = $1; $$->AddArray($3);}
+		| IDENTIFIER	{$$ = new Var($1);}
+		;
+
+VARTYP:	BUILDINTYPE	{$$ = $1;}
+			| STRUCT LBRACE StructList RBRACE	{$$ = $3;}
+			| ENUM LBRACE EnumList RBRACE	{$$ = $3;}
+			;
+			
+BUILDINTYPE: BOOL	{$$ = new BuildInType(_INT_);}
+			| SHORT	{$$ = new BuildInType(_SHORT_);}
+			| INT	{$$ = new BuildInType(_INT_);}
+			| LONG	{$$ = new BuildInType(_LONG_);}
+			| CHAR	{$$ = new BuildInType(_CHAR_);}
+			| FLOAT	{$$ = new BuildInType(_FLOAT_);}
+			| DOUBLE	{$$ = new BuildInType(_DOUBLE_);}
+			| VOID	{$$ = new BuildInType(_VOID_);}
+			;
+
+StructList:	StructList VARDEFINITION	{$$ = $1; $$->Add($2);}
+			|	{$$ = new StructType();}
+			;
+
+EnumList:	EnumList COMMA EnumAssign	{$$ = $1; $$->Add($3);}
+			| EnumAssign	{$$ = new EnumType(); $$->Add($1);}
+			| 	{$$ = new EnumType();}
+			;
+
+EnumAssign:	IDENTIFIER	{$$ = new EnumDefinition($1, -1);}
+			| IDENTIFIER ASSIGN INTEGER	{$$ = new EnumDefinition($1, $3);}
+			;
+
+ArgList:	ArgList COMMA VARTYP IDENTIFIER	{$$ = $1; $$->Add($3, $4);}
+			| VARTYP IDENTIFIER	{$$ = new ArgList(); $$->Add($1, $2);}
+			|	{$$ = new ArgList();}
+
+Block:	LBRACE STATEMENTS RBRACE	{$$ = new Block($2);}
+		;
+
+STATEMENTS:	STATEMENTS Statement	{$$ = $1; $$->push_back($2);}	
+			|	{$$ = new std::vector<Statement*>;}
+			;
+
+Statement:	Expression SEMI	{$$ = $1;}
+			| IfStatement	{$$ = $1;}
+			| ForStatement	{$$ = $1;}
+			| WhileStatement	{$$ = $1;}
+			| DoWhileStatement	{$$ = $1;}
+			| BreakStatement	{$$ = $1;}
+			| ContinueStatement	{$$ = $1;}
+			| ReturnStatement	{$$ = $1;}
+			| Block	{$$ = $1;}
+			| VARDEFINITION	{$$ = $1;}
+			;
+
+IfStatement:IF LPAREN Expression RPAREN Statement ELSE Statement	{$$ = new IfStatement($3,$5,$7);   }
+			| IF LPAREN Expression RPAREN Statement	{$$ = new IfStatement($3,$5,NULL);}
+			;
+
+ForStatement:	FOR LPAREN STATEMENTS SEMI Expression SEMI Expression RPAREN Statement	{$$ = new ForStatement($3,$5,$7,$9);}
+				;
+
+WhileStatement:	WHILE LPAREN Expression RPAREN Statement	{$$ = new WhileStatement($3,$5);}
+			;
+
+DoWhileStatement:	DO Statement WHILE LPAREN Expression RPAREN SEMI					{$$ = new DoWhileStatement($5,$2);}
+			;
+
+ContinueStatement:	CONTINUE SEMI	{$$ = new ContinueStatement();}
+			;
+
+BreakStatement:	BREAK SEMI	{$$ = new BreakStatement();}
+			;
+
+ReturnStatement:	RETURN SEMI	{$$ = new ReturnStatement(NULL);}
+					| RETURN Expression SEMI	{$$ = new ReturnStatement($2);}
+					;
+
+Expression:	Expression LBRACKET Expression RBRACKET %prec ARW	{$$ = new GetItem($1,$3);}
+			| IDENTIFIER LPAREN Args RPAREN	{$$ = new FunctionCall($1,$3);}
+			| Expression DOT IDENTIFIER	{$$ = new Component($1,$3);}
+			| Expression ARW IDENTIFIER	{$$ = new PtrComponent($1,$3);}
+			| ADD Expression	%prec NOT	{$$ = new PositiveSign($2);}
+			| SUB Expression	%prec NOT	{$$ = new NegativeSign($2);}
+			| Expression DADD 	%prec ARW	{$$ = new Increment($1);}
+			| Expression DSUB	%prec ARW	{$$ = new Decrement($1);}
+			| MUL Expression	%prec NOT	{$$ = new ValueOf($2);}
+			| BAND Expression	%prec NOT	{$$ = new AddressOf($2);}
+			| NOT Expression	{$$ = new LogicNot($2);}
+			| BNOT Expression	{$$ = new BitWiseNot($2);}
+			| Expression DIV Expression	{$$ = new Div($1,$3);}
+			| Expression MUL Expression	{$$ = new Mul($1,$3);} 
+			| Expression MOD Expression	{$$ = new Mod($1,$3);}
+			| Expression ADD Expression	{$$ = new Add($1,$3);} 
+			| Expression SUB Expression	{$$ = new Sub($1,$3);} 
+			| Expression GT Expression	{$$ = new Gt($1,$3);} 
+			| Expression GE Expression	{$$ = new Ge($1,$3);} 
+			| Expression LT Expression	{$$ = new Lt($1,$3);} 
+			| Expression LE Expression	{$$ = new Le($1,$3);} 
+			| Expression EQ Expression	{$$ = new Eq($1,$3);} 
+			| Expression NEQ Expression	{$$ = new Neq($1,$3);} 
+			| Expression BAND Expression	{$$ = new BitWiseAnd($1,$3);}
+			| Expression BXOR Expression	{$$ = new BitWiseXor($1,$3);}
+			| Expression BOR Expression	{$$ = new BitWiseOr($1,$3);} 
+			| Expression AND Expression	{$$ = new LogicAnd($1,$3);} 
+			| Expression OR Expression	{$$ = new LogicOr($1,$3);} 
+			| Expression QUES Expression COLON Expression	{$$ = new Conditional($1,$3,$5);}
+			| Expression ASSIGN Expression	{$$ = new Assign($1,$3);} 
+			| LPAREN Expression RPAREN	{$$ = $2;}
+			| IDENTIFIER	{$$ = new Variable($1);} 
+			| Constant	{$$ = $1;}
+			;
+
+Args:	Args COMMA Expression	{$$ = $1; $$->push_back($3);}
+			| Expression %prec FUNC_CALL_ARG_LIST	{$$ = new std::vector<Expression*>;$$->push_back($1);}
+			|	{$$ = new std::vector<Expression*>;}
+			;
+
+Constant:	TRUE	{$$ =  new Constant(true);}
+			| FALSE	{$$ =  new Constant(false);}
+			| CHARACTER	{$$ =  new Constant($1);}
+			| INTEGER {$$ =  new Constant($1);}
+			| REAL	{$$ =  new Constant($1);}
+			| STRING {$$ = new StrVar($1);}
+			;
+%%

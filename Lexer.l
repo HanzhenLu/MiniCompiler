@@ -1,9 +1,11 @@
 %{
-#include "Paser.tab.hpp"
 #include <stdio.h>
 #include <string>
 #include <iostream>
-extern "C" int yywrap() {return 1;}
+#include "AST.h"
+#include "Parser.tab.hpp"
+
+extern "C" int yylex();
 
 char Escape2Char(char ch){
 	switch(ch){
@@ -26,7 +28,7 @@ char Escape2Char(char ch){
 }
 %}
 
-%option never-interactive
+%option noyywrap
 %option outfile="Lexer.cpp"
 
 %%
