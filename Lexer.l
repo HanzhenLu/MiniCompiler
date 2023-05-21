@@ -28,7 +28,6 @@ char Escape2Char(char ch){
 }
 %}
 
-%option noyywrap
 %option outfile="Lexer.cpp"
 
 %%

@@ -18,6 +18,12 @@ int yywrap()
 }
 
 Program *Root;
+
+int main()
+{
+	yyparse();
+	return 0;
+}
 %}
 
 %union {
@@ -82,24 +88,24 @@ Program *Root;
 %type<star> STAR
 %type<var> ARRAY
 %type<buildintype>	BUILDINTYPE
-%type<enumtype> EnumList
-%type<enumdefinition> EnumAssign
-%type<structtype>	StructList
-%type<statement>	Statement
-%type<ifstatement>	IfStatement
-%type<forstatement>	ForStatement
-%type<whilestatement>	WhileStatement
-%type<dowhilestatement>	DoWhileStatement
-%type<breakstatement>	BreakStatement
-%type<continuestatement>	ContinueStatement
-%type<returnstatement>	ReturnStatement
-%type<block>	Block
-%type<arglist>	ArgList
-%type<var>	Var
-%type<varlist>	VarList
-%type<expression>	Expression
-%type<constant>	Constant
-%type<args>	Args
+%type<enumtype> ENUMLIST
+%type<enumdefinition> ENUMASSIGN
+%type<structtype>	STRUCTLIST
+%type<statement>	STATEMENT
+%type<ifstatement>	IFSTATEMENT
+%type<forstatement>	FORSTATEMENT
+%type<whilestatement>	WHILESTATEMENT
+%type<dowhilestatement>	DOWHILESTATEMENT
+%type<breakstatement>	BREAKSTATEMENT
+%type<continuestatement>	CONTINUESTATEMENT
+%type<returnstatement>	RETURNSTATEMENT
+%type<block>	BLOCK
+%type<arglist>	ARGLIST
+%type<var>	VAR
+%type<varlist>	VARLIST
+%type<expression>	EXPRESSION
+%type<constant>	CONSTANT
+%type<args>	ARGS
 
 %nonassoc IF
 %nonassoc ELSE
@@ -135,8 +141,8 @@ DEFINITION:		FUNDEFINITION	{$$ = $1;}
 				| VARDEFINITION		{$$ = $1;}
 				;
 
-FUNDEFINITION:	VARTYP FUNNAME LPAREN ArgList RPAREN SEMI	{$$ = new FunDefinition($1,$2,$4,NULL);}
-				| VARTYP FUNNAME LPAREN ArgList RPAREN LBRACE STATEMENTS RBRACE	{$$ = new FunDefinition($1,$2,$4,$7);}
+FUNDEFINITION:	VARTYP FUNNAME LPAREN ARGLIST RPAREN SEMI	{std::cout<<"FUNDEFINITION:	VARTYP FUNNAME LPAREN ArgList RPAREN SEMI"<<std::endl;$$ = new FunDefinition($1,$2,$4,NULL);}
+				| VARTYP FUNNAME LPAREN ARGLIST RPAREN LBRACE STATEMENTS RBRACE	{$$ = new FunDefinition($1,$2,$4,$7);}
 				;
 
 FUNNAME:	STAR IDENTIFIER	{$$ = new FunName($2, $1->GetDim()); delete $1;}
@@ -145,15 +151,15 @@ STAR:	STAR MUL	{$$ = $1; $$->Add();}
 		|	{$$ = new Star();}
 		;
 
-VARDEFINITION:	VARTYP VarList	SEMI	{$$ = new VarDefinition($1,$2);}
+VARDEFINITION:	VARTYP VARLIST	SEMI	{$$ = new VarDefinition($1,$2);}
 			;
 
-VarList:	VarList COMMA Var	{$$ = $1; $$->push_back($3);}
-			| Var	{$$ = new std::vector<Var*>; $$->push_back($1);}
+VARLIST:	VARLIST COMMA VAR	{$$ = $1; $$->push_back($3);}
+			| VAR	{$$ = new std::vector<Var*>; $$->push_back($1);}
 			|	{$$ = new std::vector<Var*>;}
 			;
 
-Var:	STAR ARRAY	{$$ = $2; $$->SetPointer($1->GetDim()); delete $1;}
+VAR:	STAR ARRAY	{$$ = $2; $$->SetPointer($1->GetDim()); delete $1;}
 		;
 
 ARRAY: 	ARRAY LBRACKET INTEGER RBRACKET	{$$ = $1; $$->AddArray($3);}
@@ -161,8 +167,8 @@ ARRAY: 	ARRAY LBRACKET INTEGER RBRACKET	{$$ = $1; $$->AddArray($3);}
 		;
 
 VARTYP:	BUILDINTYPE	{$$ = $1;}
-			| STRUCT LBRACE StructList RBRACE	{$$ = $3;}
-			| ENUM LBRACE EnumList RBRACE	{$$ = $3;}
+			| STRUCT LBRACE STRUCTLIST RBRACE	{$$ = $3;}
+			| ENUM LBRACE ENUMLIST RBRACE	{$$ = $3;}
 			;
 			
 BUILDINTYPE: BOOL	{$$ = new BuildInType(_INT_);}
@@ -175,106 +181,106 @@ BUILDINTYPE: BOOL	{$$ = new BuildInType(_INT_);}
 			| VOID	{$$ = new BuildInType(_VOID_);}
 			;
 
-StructList:	StructList VARDEFINITION	{$$ = $1; $$->Add($2);}
+STRUCTLIST:	STRUCTLIST VARDEFINITION	{$$ = $1; $$->Add($2);}
 			|	{$$ = new StructType();}
 			;
 
-EnumList:	EnumList COMMA EnumAssign	{$$ = $1; $$->Add($3);}
-			| EnumAssign	{$$ = new EnumType(); $$->Add($1);}
+ENUMLIST:	ENUMLIST COMMA ENUMASSIGN	{$$ = $1; $$->Add($3);}
+			| ENUMASSIGN	{$$ = new EnumType(); $$->Add($1);}
 			| 	{$$ = new EnumType();}
 			;
 
-EnumAssign:	IDENTIFIER	{$$ = new EnumDefinition($1, -1);}
+ENUMASSIGN:	IDENTIFIER	{$$ = new EnumDefinition($1, -1);}
 			| IDENTIFIER ASSIGN INTEGER	{$$ = new EnumDefinition($1, $3);}
 			;
 
-ArgList:	ArgList COMMA VARTYP IDENTIFIER	{$$ = $1; $$->Add($3, $4);}
+ARGLIST:	ARGLIST COMMA VARTYP IDENTIFIER	{$$ = $1; $$->Add($3, $4);}
 			| VARTYP IDENTIFIER	{$$ = new ArgList(); $$->Add($1, $2);}
 			|	{$$ = new ArgList();}
 
-Block:	LBRACE STATEMENTS RBRACE	{$$ = new Block($2);}
+BLOCK:	LBRACE STATEMENTS RBRACE	{$$ = new Block($2);}
 		;
 
-STATEMENTS:	STATEMENTS Statement	{$$ = $1; $$->push_back($2);}	
+STATEMENTS:	STATEMENTS STATEMENT	{$$ = $1; $$->push_back($2);}	
 			|	{$$ = new std::vector<Statement*>;}
 			;
 
-Statement:	Expression SEMI	{$$ = $1;}
-			| IfStatement	{$$ = $1;}
-			| ForStatement	{$$ = $1;}
-			| WhileStatement	{$$ = $1;}
-			| DoWhileStatement	{$$ = $1;}
-			| BreakStatement	{$$ = $1;}
-			| ContinueStatement	{$$ = $1;}
-			| ReturnStatement	{$$ = $1;}
-			| Block	{$$ = $1;}
+STATEMENT:	EXPRESSION SEMI	{$$ = $1;}
+			| IFSTATEMENT	{$$ = $1;}
+			| FORSTATEMENT	{$$ = $1;}
+			| WHILESTATEMENT	{$$ = $1;}
+			| DOWHILESTATEMENT	{$$ = $1;}
+			| BREAKSTATEMENT	{$$ = $1;}
+			| CONTINUESTATEMENT	{$$ = $1;}
+			| RETURNSTATEMENT	{$$ = $1;}
+			| BLOCK	{$$ = $1;}
 			| VARDEFINITION	{$$ = $1;}
 			;
 
-IfStatement:IF LPAREN Expression RPAREN Statement ELSE Statement	{$$ = new IfStatement($3,$5,$7);   }
-			| IF LPAREN Expression RPAREN Statement	{$$ = new IfStatement($3,$5,NULL);}
+IFSTATEMENT:IF LPAREN EXPRESSION RPAREN STATEMENT ELSE STATEMENT	{std::cout<<"IfStatement"<<std::endl;$$ = new IfStatement($3,$5,$7);   }
+			| IF LPAREN EXPRESSION RPAREN STATEMENT	{$$ = new IfStatement($3,$5,NULL);}
 			;
 
-ForStatement:	FOR LPAREN STATEMENTS SEMI Expression SEMI Expression RPAREN Statement	{$$ = new ForStatement($3,$5,$7,$9);}
+FORSTATEMENT:	FOR LPAREN STATEMENTS SEMI EXPRESSION SEMI EXPRESSION RPAREN STATEMENT	{std::cout<<"ForStatement"<<std::endl;$$ = new ForStatement($3,$5,$7,$9);}
 				;
 
-WhileStatement:	WHILE LPAREN Expression RPAREN Statement	{$$ = new WhileStatement($3,$5);}
+WHILESTATEMENT:	WHILE LPAREN EXPRESSION RPAREN STATEMENT	{std::cout<<"WhileStatement"<<std::endl;$$ = new WhileStatement($3,$5);}
 			;
 
-DoWhileStatement:	DO Statement WHILE LPAREN Expression RPAREN SEMI					{$$ = new DoWhileStatement($5,$2);}
+DOWHILESTATEMENT:	DO STATEMENT WHILE LPAREN EXPRESSION RPAREN SEMI	{std::cout<<"DoWhileStatement"<<std::endl;$$ = new DoWhileStatement($5,$2);}
 			;
 
-ContinueStatement:	CONTINUE SEMI	{$$ = new ContinueStatement();}
+CONTINUESTATEMENT:	CONTINUE SEMI	{$$ = new ContinueStatement();}
 			;
 
-BreakStatement:	BREAK SEMI	{$$ = new BreakStatement();}
+BREAKSTATEMENT:	BREAK SEMI	{$$ = new BreakStatement();}
 			;
 
-ReturnStatement:	RETURN SEMI	{$$ = new ReturnStatement(NULL);}
-					| RETURN Expression SEMI	{$$ = new ReturnStatement($2);}
+RETURNSTATEMENT:	RETURN SEMI	{$$ = new ReturnStatement(NULL);}
+					| RETURN EXPRESSION SEMI	{$$ = new ReturnStatement($2);}
 					;
 
-Expression:	Expression LBRACKET Expression RBRACKET %prec ARW	{$$ = new GetItem($1,$3);}
-			| IDENTIFIER LPAREN Args RPAREN	{$$ = new FunctionCall($1,$3);}
-			| Expression DOT IDENTIFIER	{$$ = new Component($1,$3);}
-			| Expression ARW IDENTIFIER	{$$ = new PtrComponent($1,$3);}
-			| ADD Expression	%prec NOT	{$$ = new PositiveSign($2);}
-			| SUB Expression	%prec NOT	{$$ = new NegativeSign($2);}
-			| Expression DADD 	%prec ARW	{$$ = new Increment($1);}
-			| Expression DSUB	%prec ARW	{$$ = new Decrement($1);}
-			| MUL Expression	%prec NOT	{$$ = new ValueOf($2);}
-			| BAND Expression	%prec NOT	{$$ = new AddressOf($2);}
-			| NOT Expression	{$$ = new LogicNot($2);}
-			| BNOT Expression	{$$ = new BitWiseNot($2);}
-			| Expression DIV Expression	{$$ = new Div($1,$3);}
-			| Expression MUL Expression	{$$ = new Mul($1,$3);} 
-			| Expression MOD Expression	{$$ = new Mod($1,$3);}
-			| Expression ADD Expression	{$$ = new Add($1,$3);} 
-			| Expression SUB Expression	{$$ = new Sub($1,$3);} 
-			| Expression GT Expression	{$$ = new Gt($1,$3);} 
-			| Expression GE Expression	{$$ = new Ge($1,$3);} 
-			| Expression LT Expression	{$$ = new Lt($1,$3);} 
-			| Expression LE Expression	{$$ = new Le($1,$3);} 
-			| Expression EQ Expression	{$$ = new Eq($1,$3);} 
-			| Expression NEQ Expression	{$$ = new Neq($1,$3);} 
-			| Expression BAND Expression	{$$ = new BitWiseAnd($1,$3);}
-			| Expression BXOR Expression	{$$ = new BitWiseXor($1,$3);}
-			| Expression BOR Expression	{$$ = new BitWiseOr($1,$3);} 
-			| Expression AND Expression	{$$ = new LogicAnd($1,$3);} 
-			| Expression OR Expression	{$$ = new LogicOr($1,$3);} 
-			| Expression QUES Expression COLON Expression	{$$ = new Conditional($1,$3,$5);}
-			| Expression ASSIGN Expression	{$$ = new Assign($1,$3);} 
-			| LPAREN Expression RPAREN	{$$ = $2;}
+EXPRESSION:	EXPRESSION LBRACKET EXPRESSION RBRACKET %prec ARW	{$$ = new GetItem($1,$3);}
+			| IDENTIFIER LPAREN ARGS RPAREN	{std::cout<<"Expression IDENTIFIER LPAREN Args RPAREN "<<std::endl;$$ = new FunctionCall($1,$3);}
+			| EXPRESSION DOT IDENTIFIER	{$$ = new Component($1,$3);}
+			| EXPRESSION ARW IDENTIFIER	{$$ = new PtrComponent($1,$3);}
+			| ADD EXPRESSION	%prec NOT	{$$ = new PositiveSign($2);}
+			| SUB EXPRESSION	%prec NOT	{$$ = new NegativeSign($2);}
+			| EXPRESSION DADD 	%prec ARW	{$$ = new Increment($1);}
+			| EXPRESSION DSUB	%prec ARW	{$$ = new Decrement($1);}
+			| MUL EXPRESSION	%prec NOT	{$$ = new ValueOf($2);}
+			| BAND EXPRESSION	%prec NOT	{$$ = new AddressOf($2);}
+			| NOT EXPRESSION	{$$ = new LogicNot($2);}
+			| BNOT EXPRESSION	{$$ = new BitWiseNot($2);}
+			| EXPRESSION DIV EXPRESSION	{$$ = new Div($1,$3);}
+			| EXPRESSION MUL EXPRESSION	{$$ = new Mul($1,$3);} 
+			| EXPRESSION MOD EXPRESSION	{$$ = new Mod($1,$3);}
+			| EXPRESSION ADD EXPRESSION	{$$ = new Add($1,$3);} 
+			| EXPRESSION SUB EXPRESSION	{$$ = new Sub($1,$3);} 
+			| EXPRESSION GT EXPRESSION	{$$ = new Gt($1,$3);} 
+			| EXPRESSION GE EXPRESSION	{$$ = new Ge($1,$3);} 
+			| EXPRESSION LT EXPRESSION	{$$ = new Lt($1,$3);} 
+			| EXPRESSION LE EXPRESSION	{$$ = new Le($1,$3);} 
+			| EXPRESSION EQ EXPRESSION	{$$ = new Eq($1,$3);} 
+			| EXPRESSION NEQ EXPRESSION	{$$ = new Neq($1,$3);} 
+			| EXPRESSION BAND EXPRESSION	{$$ = new BitWiseAnd($1,$3);}
+			| EXPRESSION BXOR EXPRESSION	{$$ = new BitWiseXor($1,$3);}
+			| EXPRESSION BOR EXPRESSION	{$$ = new BitWiseOr($1,$3);} 
+			| EXPRESSION AND EXPRESSION	{$$ = new LogicAnd($1,$3);} 
+			| EXPRESSION OR EXPRESSION	{$$ = new LogicOr($1,$3);} 
+			| EXPRESSION QUES EXPRESSION COLON EXPRESSION	{$$ = new Conditional($1,$3,$5);}
+			| EXPRESSION ASSIGN EXPRESSION	{$$ = new Assign($1,$3);} 
+			| LPAREN EXPRESSION RPAREN	{std::cout<<"LPAREN Expression RPAREN"<<std::endl;$$ = $2;}
 			| IDENTIFIER	{$$ = new Variable($1);} 
-			| Constant	{$$ = $1;}
+			| CONSTANT	{$$ = $1;}
 			;
 
-Args:	Args COMMA Expression	{$$ = $1; $$->push_back($3);}
-			| Expression %prec FUNC_CALL_ARG_LIST	{$$ = new std::vector<Expression*>;$$->push_back($1);}
+ARGS:	ARGS COMMA EXPRESSION	{$$ = $1; $$->push_back($3);}
+			| EXPRESSION %prec FUNC_CALL_ARG_LIST	{$$ = new std::vector<Expression*>;$$->push_back($1);}
 			|	{$$ = new std::vector<Expression*>;}
 			;
 
-Constant:	TRUE	{$$ =  new Constant(true);}
+CONSTANT:	TRUE	{std::cout<<"Constant: True"<<std::endl;$$ =  new Constant(true);}
 			| FALSE	{$$ =  new Constant(false);}
 			| CHARACTER	{$$ =  new Constant($1);}
 			| INTEGER {$$ =  new Constant($1);}
