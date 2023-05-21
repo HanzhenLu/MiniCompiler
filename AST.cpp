@@ -51,7 +51,7 @@ WhileStatement::WhileStatement(Expression* _Condition, Statement* _Loop):Conditi
 
 DoWhileStatement::DoWhileStatement(Expression* _Condition, Statement* _Loop):Condition(_Condition),Loop(_Loop){}
 
-ForStatement::ForStatement(std::vector<Statement*>* _Initialization, Expression* _Condition, Statement* _Collection, Statement* _Loop):Initialization(_Initialization), Condition(_Condition),Collection(_Collection),Loop(_Loop){}
+ForStatement::ForStatement(Expression* _Initialization, Expression* _Condition, Statement* _Collection, Statement* _Loop):Initialization(_Initialization), Condition(_Condition),Collection(_Collection),Loop(_Loop){}
 
 ReturnStatement::ReturnStatement(Expression* _ReturnValue): ReturnValue(_ReturnValue){}
 

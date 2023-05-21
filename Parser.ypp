@@ -143,7 +143,7 @@ DEFINITION:		FUNDEFINITION	{$$ = $1;}
 				| VARDEFINITION		{$$ = $1;}
 				;
 
-FUNDEFINITION:	VARTYP FUNNAME LPAREN ARGLIST RPAREN SEMI	{std::cout<<"FUNDEFINITION:	VARTYP FUNNAME LPAREN ArgList RPAREN SEMI"<<std::endl;$$ = new FunDefinition($1,$2,$4,NULL);}
+FUNDEFINITION:	VARTYP FUNNAME LPAREN ARGLIST RPAREN SEMI	{$$ = new FunDefinition($1,$2,$4,NULL);}
 				| VARTYP FUNNAME LPAREN ARGLIST RPAREN LBRACE STATEMENTS RBRACE	{$$ = new FunDefinition($1,$2,$4,$7);}
 				;
 
@@ -219,17 +219,17 @@ STATEMENT:	EXPRESSION SEMI	{$$ = $1;}
 			| VARDEFINITION	{$$ = $1;}
 			;
 
-IFSTATEMENT:IF LPAREN EXPRESSION RPAREN STATEMENT ELSE STATEMENT	{std::cout<<"IfStatement"<<std::endl;$$ = new IfStatement($3,$5,$7);   }
+IFSTATEMENT:IF LPAREN EXPRESSION RPAREN STATEMENT ELSE STATEMENT	{$$ = new IfStatement($3,$5,$7);   }
 			| IF LPAREN EXPRESSION RPAREN STATEMENT	{$$ = new IfStatement($3,$5,NULL);}
 			;
 
-FORSTATEMENT:	FOR LPAREN STATEMENTS SEMI EXPRESSION SEMI EXPRESSION RPAREN STATEMENT	{std::cout<<"ForStatement"<<std::endl;$$ = new ForStatement($3,$5,$7,$9);}
+FORSTATEMENT:	FOR LPAREN EXPRESSION SEMI EXPRESSION SEMI EXPRESSION RPAREN STATEMENT	{$$ = new ForStatement($3,$5,$7,$9);}
 				;
 
-WHILESTATEMENT:	WHILE LPAREN EXPRESSION RPAREN STATEMENT	{std::cout<<"WhileStatement"<<std::endl;$$ = new WhileStatement($3,$5);}
+WHILESTATEMENT:	WHILE LPAREN EXPRESSION RPAREN STATEMENT	{$$ = new WhileStatement($3,$5);}
 			;
 
-DOWHILESTATEMENT:	DO STATEMENT WHILE LPAREN EXPRESSION RPAREN SEMI	{std::cout<<"DoWhileStatement"<<std::endl;$$ = new DoWhileStatement($5,$2);}
+DOWHILESTATEMENT:	DO STATEMENT WHILE LPAREN EXPRESSION RPAREN SEMI	{$$ = new DoWhileStatement($5,$2);}
 			;
 
 CONTINUESTATEMENT:	CONTINUE SEMI	{$$ = new ContinueStatement();}
@@ -243,7 +243,7 @@ RETURNSTATEMENT:	RETURN SEMI	{$$ = new ReturnStatement(NULL);}
 					;
 
 EXPRESSION:	EXPRESSION LBRACKET EXPRESSION RBRACKET %prec ARW	{$$ = new GetItem($1,$3);}
-			| IDENTIFIER LPAREN ARGS RPAREN	{std::cout<<"Expression IDENTIFIER LPAREN Args RPAREN "<<std::endl;$$ = new FunctionCall($1,$3);}
+			| IDENTIFIER LPAREN ARGS RPAREN	{$$ = new FunctionCall($1,$3);}
 			| EXPRESSION DOT IDENTIFIER	{$$ = new Component($1,$3);}
 			| EXPRESSION ARW IDENTIFIER	{$$ = new PtrComponent($1,$3);}
 			| ADD EXPRESSION	%prec NOT	{$$ = new PositiveSign($2);}
@@ -272,7 +272,7 @@ EXPRESSION:	EXPRESSION LBRACKET EXPRESSION RBRACKET %prec ARW	{$$ = new GetItem(
 			| EXPRESSION OR EXPRESSION	{$$ = new LogicOr($1,$3);} 
 			| EXPRESSION QUES EXPRESSION COLON EXPRESSION	{$$ = new Conditional($1,$3,$5);}
 			| EXPRESSION ASSIGN EXPRESSION	{$$ = new Assign($1,$3);} 
-			| LPAREN EXPRESSION RPAREN	{std::cout<<"LPAREN Expression RPAREN"<<std::endl;$$ = $2;}
+			| LPAREN EXPRESSION RPAREN	{$$ = $2;}
 			| IDENTIFIER	{$$ = new Variable($1);} 
 			| CONSTANT	{$$ = $1;}
 			;
@@ -282,7 +282,7 @@ ARGS:	ARGS COMMA EXPRESSION	{$$ = $1; $$->push_back($3);}
 			|	{$$ = new std::vector<Expression*>;}
 			;
 
-CONSTANT:	TRUE	{std::cout<<"Constant: True"<<std::endl;$$ =  new Constant(true);}
+CONSTANT:	TRUE	{$$ =  new Constant(true);}
 			| FALSE	{$$ =  new Constant(false);}
 			| CHARACTER	{$$ =  new Constant($1);}
 			| INTEGER {$$ =  new Constant($1);}

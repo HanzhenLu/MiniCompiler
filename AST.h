@@ -144,12 +144,12 @@ public:
 };
 
 class ForStatement: public Statement{
-    std::vector<Statement*>* Initialization;
+    Expression* Initialization;
     Expression* Condition;
     Statement* Collection;
     Statement* Loop;
 public:
-    ForStatement(std::vector<Statement*>* _Initialization, Expression* _Condition, Statement* _Collection, Statement* _Loop);
+    ForStatement(Expression* _Initialization, Expression* _Condition, Statement* _Collection, Statement* _Loop);
 };
 
 class ContinueStatement: public Statement{
