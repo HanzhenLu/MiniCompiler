@@ -8,9 +8,7 @@ void Node::getGraphVizOutput(Node* node){
     for (auto child : node->childrenList) {
         getGraphVizOutput(child);
     }
-    if (node->childrenList.empty())
-        ;
-    else
+    if (!node->childrenList.empty())
     {
         graphVizRelation += std::to_string(node->currentNodeNumber) + " [label=\"" +
                             node->getNodeName() + "\"];\n";

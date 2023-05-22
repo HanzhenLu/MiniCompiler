@@ -11,7 +11,7 @@ class Program;
 
 /*
  *   usage:
- *   Mandatory: Create new node with new Node* name("str");
+ *   Mandatory: Create new node with new Node("str");
  *   Mandatory: add children node by using addChildren();
  *   Get 'AST.dot' file as output by using generateGraphVizOutput(); passing pointer to root node as parameter.
  */
@@ -20,17 +20,17 @@ class Node{
 public:
     int currentNodeNumber;
     static std::string graphVizRelation;
-    static void generateGraphVizOutput(Node* root);
+    void generateGraphVizOutput(Node* root);
     static int nodeCount;
     std::vector<Node*> childrenList;
     Node();
     Node(const std::string& name):mNodeName(name){currentNodeNumber = nodeCount;nodeCount++;}
-    ~Node();
+    virtual ~Node();
     void addChildren(Node* nptr){
         childrenList.emplace_back(nptr);
     }
-    static void getGraphVizOutput(Node* child);
-    std::string getNodeName(){return mNodeName;}
+    void getGraphVizOutput(Node* child);
+    std::string& getNodeName(){return mNodeName;}
 };
 std::string Node::graphVizRelation;
 int Node::nodeCount = 1;
