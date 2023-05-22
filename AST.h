@@ -8,8 +8,33 @@ class ArgList;
 class Var;
 class Program;
 
+
+/*
+ *   usage:
+ *   Mandatory: Create new node with new Node* name("str");
+ *   Mandatory: add children node by using addChildren();
+ *   Get 'AST.dot' file as output by using generateGraphVizOutput(); passing pointer to root node as parameter.
+ */
 class Node{
+    std::string mNodeName;
+public:
+    int currentNodeNumber;
+    static std::string graphVizRelation;
+    static void generateGraphVizOutput(Node* root);
+    static int nodeCount;
+    std::vector<Node*> childrenList;
+    Node();
+    Node(const std::string& name):mNodeName(name){currentNodeNumber = nodeCount;nodeCount++;}
+    ~Node();
+    void addChildren(Node* nptr){
+        childrenList.emplace_back(nptr);
+    }
+    static void getGraphVizOutput(Node* child);
+    std::string getNodeName(){return mNodeName;}
 };
+std::string Node::graphVizRelation;
+int Node::nodeCount = 1;
+
 
 class Program: public Node{
     std::vector<Definition*>* Definitions;
