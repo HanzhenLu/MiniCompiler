@@ -23,17 +23,14 @@ public:
     void generateGraphVizOutput(Node* root);
     static int nodeCount;
     std::vector<Node*> childrenList;
-    Node();
-    Node(const std::string& name):mNodeName(name){currentNodeNumber = nodeCount;nodeCount++;}
-    virtual ~Node();
+    Node(){currentNodeNumber = nodeCount;nodeCount++; mNodeName = "default";}
     void addChildren(Node* nptr){
         childrenList.emplace_back(nptr);
     }
     void getGraphVizOutput(Node* child);
     std::string& getNodeName(){return mNodeName;}
+    void setNodeName(std::string name);
 };
-std::string Node::graphVizRelation;
-int Node::nodeCount = 1;
 
 
 class Program: public Node{
@@ -54,6 +51,7 @@ class FunName: public Node{
     int PointerDim;
 public:
     FunName(std::string* _Name, int _PointerDim);
+    std::string* GetName();
 };
 
 class Star: public Node{
@@ -83,6 +81,7 @@ class ArgList: public Node{
     std::vector<VarType*> Types;
     std::vector<std::string*> Names;
 public:
+    ArgList();
     void Add(VarType* _Type, std::string* _Name);
 };
 
@@ -120,6 +119,7 @@ public:
 class StructType: public VarType{
     std::vector<VarDefinition*> VarDefinitions;
 public:
+    StructType();
     void Add(VarDefinition* _VarDefinition);
 };
 

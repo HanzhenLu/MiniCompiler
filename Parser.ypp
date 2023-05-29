@@ -24,6 +24,8 @@ int main()
 {
 	yyin = fopen("input.txt","r");
 	yyparse();
+	std::cout << "yyparse end\n";
+	Root->generateGraphVizOutput(Root);
 	return 0;
 }
 %}
