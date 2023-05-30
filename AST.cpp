@@ -103,8 +103,18 @@ void Var::AddArray(int size){
 }
 
 BuildInType::BuildInType(enum TypeIndex _Index):Index(_Index){
-    if(VISIBLE)
-        setNodeName("BuildInType");
+    if(VISIBLE){
+        switch(Index){
+            case _INT_: setNodeName("INT");break;
+            case _SHORT_: setNodeName("SHORT");break;
+            case _LONG_: setNodeName("LONG");break;
+            case _FLOAT_: setNodeName("FLOAT");break;
+            case _DOUBLE_: setNodeName("DOUBLE");break;
+            case _CHAR_: setNodeName("CHAR");break;
+            case _BOOL_: setNodeName("BOOL");break;
+            case _VOID_: setNodeName("VOID");break;
+        }
+    }
 }
 
 StructType::StructType(){
