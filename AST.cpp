@@ -67,15 +67,13 @@ ArgList::ArgList(){
         setNodeName("ArgList");
 }
 
-void ArgList::Add(VarType* _Type, std::string* _Name){
+void ArgList::Add(VarType* _Type, Var* _Name){
     Types.push_back(_Type);
     Names.push_back(_Name);
     if(VISIBLE){
         Node* VNode = new Node();
-        Node* CNode = new Node();
         VNode->addChildren(_Type);
-        CNode->setNodeName(*_Name);
-        VNode->addChildren(CNode);
+        VNode->addChildren(_Name);
         VNode->setNodeName("Arg");
         addChildren(VNode);
     }

@@ -79,10 +79,10 @@ public:
 
 class ArgList: public Node{
     std::vector<VarType*> Types;
-    std::vector<std::string*> Names;
+    std::vector<Var*> Names;
 public:
     ArgList();
-    void Add(VarType* _Type, std::string* _Name);
+    void Add(VarType* _Type, Var* _Name);
 };
 
 class Var: public Node{
