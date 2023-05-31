@@ -10,6 +10,7 @@ void yyerror(const char *s) {
 }
 
 extern "C" int yylex();
+extern "C" int yywrap();
 extern int yyparse(void);
 extern FILE *yyin;
 
