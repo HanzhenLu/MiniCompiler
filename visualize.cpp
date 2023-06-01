@@ -19,6 +19,19 @@ void Node::getGraphVizOutput(Node* node){
         }
     }
 }
-
-
-
+void Node::generateGraphVizOutput()
+{
+    getGraphVizOutput(this);
+    std::string content;
+    content += "graph AST{";
+    content += graphVizRelation;
+    content += "}\n";
+    std::ofstream outputFile;
+    outputFile.open("AST.dot", std::ios::out);
+    if (!outputFile.is_open())
+    {
+        std::cout<<"Can not open AST.dot file";
+    }
+    outputFile << content;
+    outputFile.close();
+}
