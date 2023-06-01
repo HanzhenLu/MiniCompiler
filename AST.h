@@ -20,15 +20,16 @@ class Node{
 public:
     int currentNodeNumber;
     static std::string graphVizRelation;
-    void generateGraphVizOutput(Node* root);
+    void generateGraphVizOutput();
     static int nodeCount;
     std::vector<Node*> childrenList;
     Node(){currentNodeNumber = nodeCount;nodeCount++; mNodeName = "default";}
+    Node(std::string name){currentNodeNumber = nodeCount;nodeCount++; mNodeName = name;}
     void addChildren(Node* nptr){
         childrenList.emplace_back(nptr);
     }
-    void getGraphVizOutput(Node* child);
-    std::string& getNodeName(){return mNodeName;}
+    void getGraphVizOutput(Node* root);
+    const std::string& getNodeName() const{return mNodeName;}
     void setNodeName(std::string name);
 };
 
