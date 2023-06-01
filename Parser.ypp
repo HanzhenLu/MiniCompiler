@@ -27,7 +27,6 @@ int main()
 	yyparse();
 	std::cout << "yyparse end\n";
 	Root->generateGraphVizOutput();
-	Root->generateGraphVizOutput(Root);
 	IRGenerator gen;
 	Root->CodeGen(gen);
 	gen.module->print(llvm::errs(), nullptr);
