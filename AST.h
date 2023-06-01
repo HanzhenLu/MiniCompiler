@@ -1,12 +1,15 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <map>
+#include "IRGenerator.h"
 
 class Definition;
 class VarType;
 class ArgList;
 class Var;
 class Program;
+class Block;
 
 
 /*
@@ -30,6 +33,7 @@ public:
     void getGraphVizOutput(Node* child);
     std::string& getNodeName(){return mNodeName;}
     void setNodeName(std::string name);
+    //virtual llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 
@@ -37,13 +41,24 @@ class Program: public Node{
     std::vector<Definition*>* Definitions;
 public:
     Program(std::vector<Definition*>* _Definitions);
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 class Statement: public Node{
+public:
+    // this function should be changed to Virtual function later
+    virtual llvm::Value* CodeGen(IRGenerator& gen){
+        std::cout << "Statement" <<std::endl;
+        return NULL;
+    }
 };
 
 class Definition: public Statement{
-
+public:
+    virtual llvm::Value* CodeGen(IRGenerator& gen){
+        std::cout << "Definition" <<std::endl;
+        return NULL;
+    }
 };
 
 class FunName: public Node{
@@ -52,6 +67,7 @@ class FunName: public Node{
 public:
     FunName(std::string* _Name, int _PointerDim);
     std::string* GetName();
+    int GetPointerDim();
 };
 
 class Star: public Node{
@@ -65,9 +81,10 @@ class FunDefinition: public Definition{
     VarType* ReturnType;
     FunName* Name;
     ArgList* Args;
-    std::vector<Statement*>* Statements;
+    Block* Statements;
 public:
-    FunDefinition(VarType* _ReturnType, FunName* _FunNam, ArgList* _Args, std::vector<Statement*>* _Statements);
+    FunDefinition(VarType* _ReturnType, FunName* _FunNam, ArgList* _Args, Block* _Statements);
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 class VarDefinition: public Definition{
@@ -75,6 +92,8 @@ class VarDefinition: public Definition{
     std::vector<Var*>* List;
 public:
     VarDefinition(VarType* _Type, std::vector<Var*>* _List);
+    void PushType(std::vector<llvm::Type*>& elements, IRGenerator& gen);
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 class ArgList: public Node{
@@ -83,9 +102,14 @@ class ArgList: public Node{
 public:
     ArgList();
     void Add(VarType* _Type, Var* _Name);
+    void SetTypeForVar();
+    void PushType(std::vector<llvm::Type*>& elements, IRGenerator& gen);
+    std::string GetNameByIndex(int idx);
 };
 
 class Var: public Node{
+    VarType* ASTType;
+    llvm::Type* LLVMType;
     int PointerDim;
     std::vector<int> ArrayDim;
     std::string* Name;
@@ -93,10 +117,20 @@ public:
     Var(std::string* _Name);
     void SetPointer(int dim);
     void AddArray(int size);
+    void SetType(VarType* _Type);
+    // Wrap pointers and arrays on types from VarType
+    llvm::Type* GetType(IRGenerator& gen);
+    std::string GetName();
 };
 
 class VarType: public Node{
-    void* Type;
+protected:
+    llvm::Type* Type;
+public:
+    VarType():Type(NULL){}
+    // generate type except pointer and array
+    // we should change it to a virtual function later
+    virtual llvm::Type* GetType(IRGenerator& gen) = 0;
 };
 
 enum TypeIndex{
@@ -114,13 +148,17 @@ class BuildInType: public VarType{
     enum TypeIndex Index;
 public:
     BuildInType(enum TypeIndex _Index);
+    llvm::Type* GetType(IRGenerator& gen);
 };
 
 class StructType: public VarType{
+    std::string* Name;
     std::vector<VarDefinition*> VarDefinitions;
 public:
     StructType();
     void Add(VarDefinition* _VarDefinition);
+    llvm::Type* GetType(IRGenerator& gen);
+    void SetName(std::string* _Name);
 };
 
 class EnumDefinition: public Definition{
@@ -134,6 +172,7 @@ class EnumType: public VarType{
     std::vector<EnumDefinition*> EnumDefinitions;
 public:
     void Add(EnumDefinition* _EnumDefinition);
+    llvm::Type* GetType(IRGenerator& gen){std::cout << "EnumType" << std::endl; return NULL;}
 };
 
 class Expression: public Statement{
@@ -144,6 +183,7 @@ class Block: public Statement{
     std::vector<Statement*>* statements;
 public:
     Block(std::vector<Statement*>* _statements);
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 class IfStatement: public Statement{

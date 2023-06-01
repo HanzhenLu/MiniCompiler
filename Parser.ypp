@@ -27,6 +27,9 @@ int main()
 	yyparse();
 	std::cout << "yyparse end\n";
 	Root->generateGraphVizOutput(Root);
+	IRGenerator gen;
+	Root->CodeGen(gen);
+	gen.module->print(llvm::errs(), nullptr);
 	return 0;
 }
 %}
@@ -147,7 +150,7 @@ DEFINITION:		FUNDEFINITION	{$$ = $1;}
 				;
 
 FUNDEFINITION:	VARTYP FUNNAME LPAREN ARGLIST RPAREN SEMI	{$$ = new FunDefinition($1,$2,$4,NULL);}
-				| VARTYP FUNNAME LPAREN ARGLIST RPAREN LBRACE STATEMENTS RBRACE	{$$ = new FunDefinition($1,$2,$4,$7);}
+				| VARTYP FUNNAME LPAREN ARGLIST RPAREN BLOCK	{$$ = new FunDefinition($1,$2,$4,$6);}
 				;
 
 FUNNAME:	STAR IDENTIFIER	{$$ = new FunName($2, $1->GetDim()); delete $1;}
@@ -172,9 +175,9 @@ ARRAY: 	ARRAY LBRACKET INTEGER RBRACKET	{$$ = $1; $$->AddArray($3);}
 		;
 
 VARTYP:	BUILDINTYPE	{$$ = $1;}
-			| STRUCT LBRACE STRUCTLIST RBRACE	{$$ = $3;}
-			| ENUM LBRACE ENUMLIST RBRACE	{$$ = $3;}
-			;
+		| STRUCT IDENTIFIER LBRACE STRUCTLIST RBRACE	{$$ = $4;((StructType*)$$)->SetName($2);}
+		| ENUM LBRACE ENUMLIST RBRACE	{$$ = $3;}
+		;
 			
 BUILDINTYPE: BOOL	{$$ = new BuildInType(_INT_);}
 			| SHORT	{$$ = new BuildInType(_SHORT_);}
