@@ -15,6 +15,11 @@ include_directories(${LLVM_INCLUDE_DIRS})
 separate_arguments(LLVM_DEFINITIONS_LIST NATIVE_COMMAND ${LLVM_DEFINITIONS})
 add_definitions(${LLVM_DEFINITIONS_LIST})
 
+# flex and bison
+execute_process(WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+                COMMAND flex Lexer.l 
+                COMMAND bison Parser.ypp -d)
+
 # Now build our tools
 add_executable(Compiler Lexer.cpp AST.cpp Parser.tab.cpp visualize.cpp IRGenerator.cpp)
 
