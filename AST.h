@@ -173,11 +173,18 @@ class EnumType: public VarType{
     std::vector<EnumDefinition*> EnumDefinitions;
 public:
     void Add(EnumDefinition* _EnumDefinition);
-    llvm::Type* GetType(IRGenerator& gen){std::cout << "EnumType" << std::endl; return NULL;}
+    llvm::Type* GetType(IRGenerator& gen){
+        std::cout << "EnumType" << std::endl; 
+        return NULL;
+    }
 };
 
 class Expression: public Statement{
-
+public:
+    virtual llvm::Value* CodeGen(IRGenerator& gen){
+        std::cout << "Expression" <<std::endl;
+        return NULL;
+    }
 };
 
 class Block: public Statement{
@@ -439,6 +446,7 @@ class Assign: public Expression{
     Expression* Object;
 public:
     Assign(Expression* _Target, Expression* _Object);
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 union value{
@@ -457,6 +465,7 @@ public:
     Constant(double d);
     Constant(char c);
     Constant(){}
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 class Variable: public Expression{

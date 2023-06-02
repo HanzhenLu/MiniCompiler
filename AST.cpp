@@ -593,6 +593,10 @@ Assign::Assign(Expression* _Target, Expression* _Object):Target(_Target),Object(
     }
 }
 
+llvm::Value* Assign::CodeGen(IRGenerator& gen){
+    gen.Builder.CreateStore(Object->CodeGen(gen), Target->CodeGen(gen));
+}
+
 Constant::Constant(bool b):Type(_BOOL_){
     Value.b = b;
     if(VISIBLE)
@@ -615,6 +619,19 @@ Constant::Constant(char c):Type(_CHAR_){
     Value.c = c;
     if(VISIBLE)
         setNodeName("Constant char");
+}
+
+llvm::Value* Constant::CodeGen(IRGenerator& gen){
+    switch(Type){
+        case _INT_: return llvm::ConstantInt::get(llvm::Type::getInt32Ty(gen.Context), Value.i);
+        case _SHORT_: return llvm::ConstantInt::get(llvm::Type::getInt16Ty(gen.Context), Value.i);
+        case _LONG_: return llvm::ConstantInt::get(llvm::Type::getInt64Ty(gen.Context), Value.i);
+        case _FLOAT_: return llvm::ConstantFP::get(llvm::Type::getFloatTy(gen.Context), Value.d);
+        case _DOUBLE_: return llvm::ConstantFP::get(llvm::Type::getDoubleTy(gen.Context), Value.d);
+        case _BOOL_: return llvm::ConstantInt::get(llvm::Type::getInt1Ty(gen.Context), Value.b);
+        case _CHAR_: return llvm::ConstantInt::get(llvm::Type::getInt8Ty(gen.Context), Value.c);
+    }
+    ErrorMessage("unknown type", 4);
 }
 
 Variable::Variable(std::string* _Name):Name(_Name){
