@@ -391,11 +391,28 @@ PositiveSign::PositiveSign(Expression* _Operand):Operand(_Operand){
     }
 }
 
+llvm::Value* PositiveSign::CodeGen(IRGenerator& gen){
+    llvm::Value* value = Operand->CodeGen(gen);
+    if(!(value->getType()->isIntegerTy() || value->getType()->isFloatingPointTy()))
+        ErrorMessage("Only integers and floating point numbers should be used as operand of '+'", 5);
+    return value;
+}
+
 NegativeSign::NegativeSign(Expression* _Operand):Operand(_Operand){
     if(VISIBLE){
         setNodeName("Negative");
         addChildren(Operand);
     }
+}
+
+llvm::Value* NegativeSign::CodeGen(IRGenerator& gen){
+    llvm::Value* value = Operand->CodeGen(gen);
+    if(!(value->getType()->isIntegerTy() || value->getType()->isFloatingPointTy()))
+        ErrorMessage("Only integers and floating point numbers should be used as operand of '-'", 5);
+    if(value->getType()->isIntegerTy())
+        return gen.Builder.CreateNeg(value);
+    else
+        return gen.Builder.CreateFNeg(value);
 }
 
 Increment::Increment(Expression* _Operand):Operand(_Operand){
@@ -405,11 +422,31 @@ Increment::Increment(Expression* _Operand):Operand(_Operand){
     }
 }
 
+llvm::Value* Increment::CodeGen(IRGenerator& gen){
+    llvm::Value* value = Operand->CodeGen(gen);
+    // temporarily, only int is allowed to increment
+    if(!(value->getType()->isIntegerTy()))
+        ErrorMessage("Only integers are allowed to increment", 6);
+    llvm::Value* puls = gen.Builder.CreateAdd(value, llvm::ConstantInt::get(llvm::Type::getInt32Ty(gen.Context), 1));
+    gen.Builder.CreateStore(puls, value);
+    return value;
+}
+
 Decrement::Decrement(Expression* _Operand):Operand(_Operand){
     if(VISIBLE){
         setNodeName("Decrement");
         addChildren(Operand);
     }
+}
+
+llvm::Value* Decrement::CodeGen(IRGenerator& gen){
+    llvm::Value* value = Operand->CodeGen(gen);
+    // temporarily, only int is allowed to increment
+    if(!(value->getType()->isIntegerTy()))
+        ErrorMessage("Only integers are allowed to decrement", 6);
+    llvm::Value* puls = gen.Builder.CreateAdd(value, llvm::ConstantInt::get(llvm::Type::getInt32Ty(gen.Context), -1));
+    gen.Builder.CreateStore(puls, value);
+    return value;
 }
 
 ValueOf::ValueOf(Expression* _Operand):Operand(_Operand){

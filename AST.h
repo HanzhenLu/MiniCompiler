@@ -270,24 +270,28 @@ class PositiveSign: public Expression{
     Expression* Operand;
 public:
     PositiveSign(Expression* _Operand);
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 class NegativeSign: public Expression{
     Expression* Operand;
 public:
     NegativeSign(Expression* _Operand);
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 class Increment: public Expression{
     Expression* Operand;
 public:
     Increment(Expression* _Operand);
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 class Decrement: public Expression{
     Expression* Operand;
 public:
     Decrement(Expression* _Operand);
+    llvm::Value* CodeGen(IRGenerator& gen);
 };
 
 class ValueOf: public Expression{
