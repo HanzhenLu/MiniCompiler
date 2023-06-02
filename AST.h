@@ -182,7 +182,11 @@ public:
 class Expression: public Statement{
 public:
     virtual llvm::Value* CodeGen(IRGenerator& gen){
-        std::cout << "Expression" <<std::endl;
+        std::cout << "Expression : CodeGen" << std::endl;
+        return NULL;
+    }
+    virtual llvm::Value* CodeGenPtr(IRGenerator& gen){
+        std::cout << "Expression : CodeGenPtr" << std::endl;
         return NULL;
     }
 };
@@ -310,12 +314,16 @@ class LogicNot: public Expression{
     Expression* Operand;
 public:
     LogicNot(Expression* _Operand);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class BitWiseNot: public Expression{
     Expression* Operand;
 public:
     BitWiseNot(Expression* _Operand);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class LogicAnd: public Expression{
@@ -323,6 +331,8 @@ class LogicAnd: public Expression{
     Expression* OperandB;
 public:
     LogicAnd(Expression* A, Expression*B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class BitWiseAnd: public Expression{
@@ -330,6 +340,8 @@ class BitWiseAnd: public Expression{
     Expression* OperandB;
 public:
     BitWiseAnd(Expression* A, Expression*B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class LogicOr: public Expression{
@@ -337,6 +349,8 @@ class LogicOr: public Expression{
     Expression* OperandB;
 public:
     LogicOr(Expression* A, Expression*B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class BitWiseOr: public Expression{
@@ -344,6 +358,8 @@ class BitWiseOr: public Expression{
     Expression* OperandB;
 public:
     BitWiseOr(Expression* A, Expression*B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class LogicXor: public Expression{
@@ -351,6 +367,8 @@ class LogicXor: public Expression{
     Expression* OperandB;
 public:
     LogicXor(Expression* A, Expression*B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    //llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class BitWiseXor: public Expression{
@@ -476,6 +494,8 @@ class Variable: public Expression{
     std::string* Name;
 public:
     Variable(std::string* _Name);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class StrVar: public Constant{

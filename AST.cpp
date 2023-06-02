@@ -9,7 +9,6 @@ void ErrorMessage(std::string Message, int ExitCode){
 
 std::string Node::graphVizRelation;
 int Node::nodeCount = 1;
-std::map<std::string, llvm::Value*> NamedValues;
 
 void Node::setNodeName(std::string name){
     mNodeName = name;
@@ -90,12 +89,12 @@ llvm::Value* FunDefinition::CodeGen(IRGenerator& gen){
         if(!fun->empty())
             ErrorMessage("redefinition of function", 2);
         if(fun->arg_size() != ArgsType.size())
-            ErrorMessage("redefinition of function with different args", 2);
+            ErrorMessage("redefinition of function with different args", 93);
         int idx = 0;
-        NamedValues.clear();
+        gen.NamedValues.clear();
         for(llvm::Function::arg_iterator AI = fun->arg_begin(); idx != ArgsType.size(); idx++, AI++){
             AI->setName(Args->GetNameByIndex(idx));
-            NamedValues[Args->GetNameByIndex(idx)] = AI;
+            gen.NamedValues[Args->GetNameByIndex(idx)] = AI;
         }
         llvm::BasicBlock* BB = llvm::BasicBlock::Create(gen.Context, "entry", fun);
         gen.Builder.SetInsertPoint(BB);
@@ -108,6 +107,7 @@ llvm::Value* FunDefinition::CodeGen(IRGenerator& gen){
         //fun->eraseFromParent();
         return nullptr;
     }
+    return NULL;
 }
 
 VarDefinition::VarDefinition(VarType* _Type, std::vector<Var*>* _List):Type(_Type),List(_List){
@@ -132,12 +132,15 @@ void VarDefinition::PushType(std::vector<llvm::Type*>& elements, IRGenerator& ge
 llvm::Value* VarDefinition::CodeGen(IRGenerator& gen){
     for(auto i : *List){
         llvm::Type* RealType = i->GetType(gen);
+        // function CreateAlloca always return a PointerTy instead of RealType
+        // so we have to store it by ourself
         llvm::Value* temp = gen.Builder.CreateAlloca(RealType);
-        auto iter = NamedValues.find(i->GetName());
-        if(iter != NamedValues.end())
+        auto iter = gen.NamedValues.find(i->GetName());
+        if(iter != gen.NamedValues.end())
             ErrorMessage("redefinition of variable", 3);
-        NamedValues[i->GetName()] = temp;
+        gen.NamedValues[i->GetName()] = temp;
     }
+    return NULL;
 }
 
 ArgList::ArgList(){
@@ -160,7 +163,7 @@ void ArgList::Add(VarType* _Type, Var* _Name){
 void ArgList::SetTypeForVar(){
     int len = Types.size();
     if(len != Names.size())
-        ErrorMessage("ArgList has inconsistent size", 1);
+        ErrorMessage("ArgList has inconsistent size", 162);
     for(int i = 0; i < len; i++){
         Names[i]->SetType(Types[i]);
     }
@@ -393,7 +396,8 @@ PositiveSign::PositiveSign(Expression* _Operand):Operand(_Operand){
 
 llvm::Value* PositiveSign::CodeGen(IRGenerator& gen){
     llvm::Value* value = Operand->CodeGen(gen);
-    if(!(value->getType()->isIntegerTy() || value->getType()->isFloatingPointTy()))
+    llvm::Type* _type = value->getType();
+    if(!(_type->isIntegerTy() || _type->isIntegerTy()))
         ErrorMessage("Only integers and floating point numbers should be used as operand of '+'", 5);
     return value;
 }
@@ -407,7 +411,8 @@ NegativeSign::NegativeSign(Expression* _Operand):Operand(_Operand){
 
 llvm::Value* NegativeSign::CodeGen(IRGenerator& gen){
     llvm::Value* value = Operand->CodeGen(gen);
-    if(!(value->getType()->isIntegerTy() || value->getType()->isFloatingPointTy()))
+    llvm::Type* _type = value->getType();
+    if(!(_type->isIntegerTy() || _type->isFloatingPointTy()))
         ErrorMessage("Only integers and floating point numbers should be used as operand of '-'", 5);
     if(value->getType()->isIntegerTy())
         return gen.Builder.CreateNeg(value);
@@ -423,13 +428,15 @@ Increment::Increment(Expression* _Operand):Operand(_Operand){
 }
 
 llvm::Value* Increment::CodeGen(IRGenerator& gen){
-    llvm::Value* value = Operand->CodeGen(gen);
+    llvm::Value* value = Operand->CodeGenPtr(gen);
+    llvm::Value* RetVal = gen.Builder.CreateLoad(value->getType()->getPointerElementType(), value);
     // temporarily, only int is allowed to increment
-    if(!(value->getType()->isIntegerTy()))
-        ErrorMessage("Only integers are allowed to increment", 6);
-    llvm::Value* puls = gen.Builder.CreateAdd(value, llvm::ConstantInt::get(llvm::Type::getInt32Ty(gen.Context), 1));
+    llvm::Type* _type = value->getType()->getPointerElementType();
+    if(!(_type->isIntegerTy()))
+        ErrorMessage("Only integers are allowed to increment", 429);
+    llvm::Value* puls = gen.Builder.CreateAdd(RetVal, llvm::ConstantInt::get(llvm::Type::getInt1Ty(gen.Context), 1));
     gen.Builder.CreateStore(puls, value);
-    return value;
+    return RetVal;
 }
 
 Decrement::Decrement(Expression* _Operand):Operand(_Operand){
@@ -441,12 +448,14 @@ Decrement::Decrement(Expression* _Operand):Operand(_Operand){
 
 llvm::Value* Decrement::CodeGen(IRGenerator& gen){
     llvm::Value* value = Operand->CodeGen(gen);
-    // temporarily, only int is allowed to increment
-    if(!(value->getType()->isIntegerTy()))
-        ErrorMessage("Only integers are allowed to decrement", 6);
-    llvm::Value* puls = gen.Builder.CreateAdd(value, llvm::ConstantInt::get(llvm::Type::getInt32Ty(gen.Context), -1));
-    gen.Builder.CreateStore(puls, value);
-    return value;
+    llvm::Value* RetVal = gen.Builder.CreateLoad(value->getType()->getPointerElementType(), value);
+    llvm::Type* _type = value->getType()->getPointerElementType();
+    // temporarily, only int is allowed to decrement
+    if(!(_type->isIntegerTy()))
+        ErrorMessage("Only integers are allowed to decrement", 446);
+    llvm::Value* sub = gen.Builder.CreateSub(RetVal, llvm::ConstantInt::get(llvm::Type::getInt1Ty(gen.Context), -1));
+    gen.Builder.CreateStore(sub, value);
+    return RetVal;
 }
 
 ValueOf::ValueOf(Expression* _Operand):Operand(_Operand){
@@ -470,11 +479,33 @@ LogicNot::LogicNot(Expression* _Operand):Operand(_Operand){
     }
 }
 
+llvm::Value* LogicNot::CodeGen(IRGenerator& gen){
+    return gen.Builder.CreateICmpNE(Cast2Bool(Operand->CodeGen(gen), gen), llvm::ConstantInt::get(llvm::Type::getInt1Ty(gen.Context), 1));
+}
+
+llvm::Value* LogicNot::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("LogicNot was used as left value", 485);
+    return NULL;
+}
+
 BitWiseNot::BitWiseNot(Expression* _Operand):Operand(_Operand){
     if(VISIBLE){
         setNodeName("BitWiseNot");
         addChildren(Operand);
     }
+}
+
+llvm::Value* BitWiseNot::CodeGen(IRGenerator& gen){
+    llvm::Value* value = Operand->CodeGen(gen);
+    if(!value->getType()->isIntegerTy()){
+        ErrorMessage("Bitwise Not must be applied to integers", 499);
+    }
+    return gen.Builder.CreateNot(value);
+}
+
+llvm::Value* BitWiseNot::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("BitWiseNot was used as left value", 506);
+    return NULL;
 }
 
 LogicAnd::LogicAnd(Expression* A, Expression*B):OperandA(A),OperandB(B){
@@ -485,12 +516,38 @@ LogicAnd::LogicAnd(Expression* A, Expression*B):OperandA(A),OperandB(B){
     }
 }
 
+llvm::Value* LogicAnd::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    A = Cast2Bool(A, gen);
+    B = Cast2Bool(B, gen);
+    return gen.Builder.CreateAnd(A, B);
+}
+
+llvm::Value* LogicAnd::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("LogicAnd was used as left value", 526);
+    return NULL;
+}
+
 BitWiseAnd::BitWiseAnd(Expression* A, Expression*B):OperandA(A),OperandB(B){
     if(VISIBLE){
         setNodeName("BitWiseAnd");
         addChildren(OperandA);
         addChildren(OperandB);
     }
+}
+
+llvm::Value* BitWiseAnd::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(!(A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
+        TypeUpgrading(A, B, gen);
+    return gen.Builder.CreateAnd(A, B);
+}
+
+llvm::Value* BitWiseAnd::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("BitWiseAnd was used as left value", 547);
+    return NULL;
 }
 
 LogicOr::LogicOr(Expression* A, Expression*B):OperandA(A),OperandB(B){
@@ -501,6 +558,19 @@ LogicOr::LogicOr(Expression* A, Expression*B):OperandA(A),OperandB(B){
     }
 }
 
+llvm::Value* LogicOr::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    A = Cast2Bool(A, gen);
+    B = Cast2Bool(B, gen);
+    return gen.Builder.CreateOr(A, B);
+}
+
+llvm::Value* LogicOr::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("LogicOr was used as left value", 547);
+    return NULL;
+}
+
 BitWiseOr::BitWiseOr(Expression* A, Expression*B):OperandA(A),OperandB(B){
     if(VISIBLE){
         setNodeName("BitWiseOr");
@@ -509,12 +579,29 @@ BitWiseOr::BitWiseOr(Expression* A, Expression*B):OperandA(A),OperandB(B){
     }
 }
 
+llvm::Value* BitWiseOr::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(!(A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
+        TypeUpgrading(A, B, gen);
+    return gen.Builder.CreateOr(A, B);
+}
+
+llvm::Value* BitWiseOr::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("BitWiseOr was used as left value", 590);
+    return NULL;
+}
+
 LogicXor::LogicXor(Expression* A, Expression*B):OperandA(A),OperandB(B){
     if(VISIBLE){
         setNodeName("LogicXor");
         addChildren(OperandA);
         addChildren(OperandB);
     }
+}
+
+llvm::Value* LogicXor::CodeGen(IRGenerator& gen){
+
 }
 
 BitWiseXor::BitWiseXor(Expression* A, Expression*B):OperandA(A),OperandB(B){
@@ -631,7 +718,8 @@ Assign::Assign(Expression* _Target, Expression* _Object):Target(_Target),Object(
 }
 
 llvm::Value* Assign::CodeGen(IRGenerator& gen){
-    gen.Builder.CreateStore(Object->CodeGen(gen), Target->CodeGen(gen));
+    gen.Builder.CreateStore(Object->CodeGen(gen), Target->CodeGenPtr(gen));
+    return Object->CodeGen(gen);
 }
 
 Constant::Constant(bool b):Type(_BOOL_){
@@ -674,6 +762,20 @@ llvm::Value* Constant::CodeGen(IRGenerator& gen){
 Variable::Variable(std::string* _Name):Name(_Name){
     if(VISIBLE)
         setNodeName(*Name);
+}
+
+llvm::Value* Variable::CodeGen(IRGenerator& gen){
+    auto iter = gen.NamedValues.find(*Name);
+    if(iter == gen.NamedValues.end())
+        ErrorMessage("undefined variable is used", 682);
+    return gen.Builder.CreateLoad(iter->second->getType()->getPointerElementType(), iter->second);
+}
+
+llvm::Value* Variable::CodeGenPtr(IRGenerator& gen){
+    auto iter = gen.NamedValues.find(*Name);
+    if(iter == gen.NamedValues.end())
+        ErrorMessage("undefined variable is used", 689);
+    return iter->second;
 }
 
 StrVar::StrVar(std::string* _Value):Value(_Value){

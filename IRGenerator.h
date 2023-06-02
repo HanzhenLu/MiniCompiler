@@ -6,7 +6,7 @@
 #include <llvm/IR/Function.h>
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Verifier.h>
-
+#include <llvm/IR/BasicBlock.h>
 
 class IRGenerator{
 public:
@@ -14,4 +14,9 @@ public:
     llvm::Module* module;
     llvm::LLVMContext Context;
     llvm::IRBuilder<> Builder;
+    std::map<std::string, llvm::Value*> NamedValues;
 };
+
+llvm::Value* Cast2Bool(llvm::Value* value, IRGenerator& gen);
+
+bool TypeUpgrading(llvm::Value*& A, llvm::Value*& B, IRGenerator& gen);
