@@ -26,10 +26,11 @@ bool TypeUpgrading(llvm::Value*& A, llvm::Value*& B, IRGenerator& gen){
     if(typeA->isIntegerTy() && typeB->isIntegerTy()){
         size_t Bit1 = typeA->getIntegerBitWidth();
         size_t Bit2 = typeB->getIntegerBitWidth();
+        // if there is a bool type among two operand, we should use unsigned casting
         if(Bit1 < Bit2)
-            A = gen.Builder.CreateIntCast(A, typeB, true);
+            A = gen.Builder.CreateIntCast(A, typeB, Bit1 != 1);
         else
-            B = gen.Builder.CreateIntCast(B, typeA, true);
+            B = gen.Builder.CreateIntCast(B, typeA, Bit2 != 1);
         return true;
     }
     else if(typeA->isFloatingPointTy() && typeB->isFloatingPointTy()){
@@ -39,13 +40,37 @@ bool TypeUpgrading(llvm::Value*& A, llvm::Value*& B, IRGenerator& gen){
             B = gen.Builder.CreateFPCast(B, A->getType());
         return true;
     }
+    // careful about the sign, too
     else if(typeA->isIntegerTy() && typeB->isFloatingPointTy()){
-        A = gen.Builder.CreateSIToFP(A, typeB);
+        A = typeA->isIntegerTy(1) ? gen.Builder.CreateUIToFP(A, typeB) : gen.Builder.CreateSIToFP(A, typeB);
         return true;
     }
     else if(typeA->isFloatingPointTy() && typeB->isIntegerTy()){
-        B = gen.Builder.CreateSIToFP(B, typeA);
+        B = typeB->isIntegerTy(1) ? gen.Builder.CreateUIToFP(B, typeA) : gen.Builder.CreateSIToFP(B, typeB);
         return true;
     }
     else return false;
+}
+
+llvm::Value* TypeCastTo(llvm::Value* A, llvm::Type* type, IRGenerator& gen){
+    llvm::Type* typeA = A->getType();
+    if(typeA == type)
+        return A;
+    else if(type == llvm::Type::getInt1Ty(gen.Context))
+        return Cast2Bool(A, gen);
+    else if(typeA->isIntegerTy() && type->isIntegerTy())
+        return gen.Builder.CreateIntCast(A, type, !typeA->isIntegerTy(1));
+    else if(typeA->isIntegerTy() && type->isFloatingPointTy())
+        return typeA->isIntegerTy(1) ? gen.Builder.CreateUIToFP(A, type) : gen.Builder.CreateSIToFP(A, type);
+    else if(typeA->isFloatingPointTy() && type->isIntegerTy())
+        return gen.Builder.CreateFPToSI(A, type);
+    else if(typeA->isFloatingPointTy() && type->isFloatingPointTy())
+        return gen.Builder.CreateFPCast(A, type);
+    else if(typeA->isPointerTy() && type->isIntegerTy())
+        return gen.Builder.CreatePtrToInt(A, type);
+    else if(typeA->isIntegerTy() && type->isPointerTy())
+        return gen.Builder.CreateIntToPtr(A, type);
+    else if(typeA->isPointerTy() && type->isPointerTy())
+        return gen.Builder.CreatePointerCast(A, type);
+    else return NULL;
 }

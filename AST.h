@@ -247,6 +247,8 @@ class GetItem: public Expression{
     Expression* Index;
 public:
     GetItem(Expression* _Array, Expression* _Index);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class FunctionCall: public Expression{
@@ -254,6 +256,8 @@ class FunctionCall: public Expression{
     std::vector<Expression*>* Args;
 public:
     FunctionCall(std::string* _FunName, std::vector<Expression*>* _Args);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Component: public Expression{
@@ -261,6 +265,8 @@ class Component: public Expression{
     std::string* ComponentName;
 public:
     Component(Expression* _Structure, std::string* _ComponentName);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class PtrComponent: public Expression{
@@ -275,6 +281,7 @@ class PositiveSign: public Expression{
 public:
     PositiveSign(Expression* _Operand);
     llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class NegativeSign: public Expression{
@@ -282,6 +289,7 @@ class NegativeSign: public Expression{
 public:
     NegativeSign(Expression* _Operand);
     llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Increment: public Expression{
@@ -289,6 +297,7 @@ class Increment: public Expression{
 public:
     Increment(Expression* _Operand);
     llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Decrement: public Expression{
@@ -296,18 +305,23 @@ class Decrement: public Expression{
 public:
     Decrement(Expression* _Operand);
     llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class ValueOf: public Expression{
     Expression* Operand;
 public:
     ValueOf(Expression* _Operand);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class AddressOf: public Expression{
     Expression* Operand;
 public:
     AddressOf(Expression* _Operand);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class LogicNot: public Expression{
@@ -368,7 +382,7 @@ class LogicXor: public Expression{
 public:
     LogicXor(Expression* A, Expression*B);
     llvm::Value* CodeGen(IRGenerator& gen);
-    //llvm::Value* CodeGenPtr(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class BitWiseXor: public Expression{
@@ -376,6 +390,8 @@ class BitWiseXor: public Expression{
     Expression* OperandB;
 public:
     BitWiseXor(Expression* A, Expression*B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Div: public Expression{
@@ -383,6 +399,8 @@ class Div: public Expression{
     Expression* OperandB;
 public:
     Div(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Mul: public Expression{
@@ -390,6 +408,8 @@ class Mul: public Expression{
     Expression* OperandB;
 public:
     Mul(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Mod: public Expression{
@@ -397,6 +417,8 @@ class Mod: public Expression{
     Expression* OperandB;
 public:
     Mod(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Add: public Expression{
@@ -404,6 +426,8 @@ class Add: public Expression{
     Expression* OperandB;
 public:
     Add(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Sub: public Expression{
@@ -411,6 +435,8 @@ class Sub: public Expression{
     Expression* OperandB;
 public:
     Sub(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Gt: public Expression{
@@ -418,6 +444,8 @@ class Gt: public Expression{
     Expression* OperandB;
 public:
     Gt(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Ge: public Expression{
@@ -425,6 +453,8 @@ class Ge: public Expression{
     Expression* OperandB;
 public:
     Ge(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Lt: public Expression{
@@ -432,6 +462,8 @@ class Lt: public Expression{
     Expression* OperandB;
 public:
     Lt(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Le: public Expression{
@@ -439,6 +471,8 @@ class Le: public Expression{
     Expression* OperandB;
 public:
     Le(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Eq: public Expression{
@@ -446,6 +480,8 @@ class Eq: public Expression{
     Expression* OperandB;
 public:
     Eq(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Neq: public Expression{
@@ -453,6 +489,8 @@ class Neq: public Expression{
     Expression* OperandB;
 public:
     Neq(Expression* _A, Expression* _B);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Conditional: public Expression{
@@ -461,6 +499,8 @@ class Conditional: public Expression{
     Expression* ValueFalse;
 public:
     Conditional(Expression* _Condition, Expression* _ValueTrue, Expression* _ValueFalse);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Assign: public Expression{
@@ -469,6 +509,7 @@ class Assign: public Expression{
 public:
     Assign(Expression* _Target, Expression* _Object);
     llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 union value{
@@ -488,6 +529,7 @@ public:
     Constant(char c);
     Constant(){}
     llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };
 
 class Variable: public Expression{
@@ -502,4 +544,6 @@ class StrVar: public Constant{
     std::string* Value;
 public:
     StrVar(std::string* _Value);
+    llvm::Value* CodeGen(IRGenerator& gen);
+    llvm::Value* CodeGenPtr(IRGenerator& gen);
 };

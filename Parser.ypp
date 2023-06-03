@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <vector>
+#include <stdio.h>
 #include "AST.h"
 
 void yyerror(const char *s) {
@@ -27,8 +28,11 @@ int main()
 	yyparse();
 	std::cout << "yyparse end\n";
 	Root->generateGraphVizOutput();
+	std::cout << "visualization end\n";
 	IRGenerator gen;
+	// produce IR code
 	Root->CodeGen(gen);
+	// print IR code
 	gen.module->print(llvm::errs(), nullptr);
 	return 0;
 }
@@ -179,7 +183,7 @@ VARTYP:	BUILDINTYPE	{$$ = $1;}
 		| ENUM LBRACE ENUMLIST RBRACE	{$$ = $3;}
 		;
 			
-BUILDINTYPE: BOOL	{$$ = new BuildInType(_INT_);}
+BUILDINTYPE: BOOL	{$$ = new BuildInType(_BOOL_);}
 			| SHORT	{$$ = new BuildInType(_SHORT_);}
 			| INT	{$$ = new BuildInType(_INT_);}
 			| LONG	{$$ = new BuildInType(_LONG_);}

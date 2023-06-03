@@ -133,7 +133,6 @@ llvm::Value* VarDefinition::CodeGen(IRGenerator& gen){
     for(auto i : *List){
         llvm::Type* RealType = i->GetType(gen);
         // function CreateAlloca always return a PointerTy instead of RealType
-        // so we have to store it by ourself
         llvm::Value* temp = gen.Builder.CreateAlloca(RealType);
         auto iter = gen.NamedValues.find(i->GetName());
         if(iter != gen.NamedValues.end())
@@ -320,7 +319,8 @@ IfStatement::IfStatement(Expression* _Condition, Statement* _True, Statement* _F
         setNodeName("IF");
         addChildren(Condition);
         addChildren(True);
-        addChildren(False);
+        if(False != NULL)
+            addChildren(False);
     }
 }
 
@@ -365,6 +365,22 @@ GetItem::GetItem(Expression* _Array, Expression* _Index):Array(_Array), Index(_I
     }
 }
 
+llvm::Value* GetItem::CodeGen(IRGenerator& gen){
+    llvm::Value* result = CodeGenPtr(gen);
+    return gen.Builder.CreateLoad(result->getType()->getPointerElementType(), result);
+}
+
+llvm::Value* GetItem::CodeGenPtr(IRGenerator& gen){
+    llvm::Value* ArrayPtr = Array->CodeGen(gen);
+    if(!ArrayPtr->getType()->isPointerTy()){
+        ErrorMessage("a[], a must be a pointers or arrays", 375);
+    }
+    llvm::Value* Idx = Index->CodeGen(gen);
+    if(!Idx->getType()->isIntegerTy())
+        ErrorMessage("a[idx], idx must be an integer", 379);
+    return gen.Builder.CreateGEP(ArrayPtr->getType()->getPointerElementType(), ArrayPtr, Idx);
+}
+
 FunctionCall::FunctionCall(std::string* _FunName, std::vector<Expression*>* _Args):FunName(_FunName),Args(_Args){
     if(VISIBLE){
         setNodeName("FunCall : " + *FunName);
@@ -373,11 +389,29 @@ FunctionCall::FunctionCall(std::string* _FunName, std::vector<Expression*>* _Arg
     }
 }
 
+llvm::Value* FunctionCall::CodeGen(IRGenerator& gen){
+    
+}
+
+llvm::Value* FunctionCall::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("Function calling was used as left value", 396);
+    return NULL;
+}
+
 Component::Component(Expression* _Structure, std::string* _ComponentName):Structure(_Structure), ComponentName(_ComponentName){
     if(VISIBLE){
         setNodeName("Component : " + *ComponentName);
         addChildren(Structure);
     }
+}
+
+llvm::Value* Component::CodeGen(IRGenerator& gen){
+    llvm::Value* result = CodeGenPtr(gen);
+    return gen.Builder.CreateLoad(result->getType()->getPointerElementType(), result);
+}
+
+llvm::Value* Component::CodeGenPtr(IRGenerator& gen){
+    
 }
 
 PtrComponent::PtrComponent(Expression* _PtrStructure, std::string* _ComponentName):PtrStructure(_PtrStructure), ComponentName(_ComponentName){
@@ -402,6 +436,11 @@ llvm::Value* PositiveSign::CodeGen(IRGenerator& gen){
     return value;
 }
 
+llvm::Value* PositiveSign::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("+ was used as left value", 458);
+    return NULL;
+}
+
 NegativeSign::NegativeSign(Expression* _Operand):Operand(_Operand){
     if(VISIBLE){
         setNodeName("Negative");
@@ -418,6 +457,11 @@ llvm::Value* NegativeSign::CodeGen(IRGenerator& gen){
         return gen.Builder.CreateNeg(value);
     else
         return gen.Builder.CreateFNeg(value);
+}
+
+llvm::Value* NegativeSign::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("- was used as left value", 458);
+    return NULL;
 }
 
 Increment::Increment(Expression* _Operand):Operand(_Operand){
@@ -439,6 +483,11 @@ llvm::Value* Increment::CodeGen(IRGenerator& gen){
     return RetVal;
 }
 
+llvm::Value* Increment::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("++ was used as left value", 458);
+    return NULL;
+}
+
 Decrement::Decrement(Expression* _Operand):Operand(_Operand){
     if(VISIBLE){
         setNodeName("Decrement");
@@ -458,6 +507,11 @@ llvm::Value* Decrement::CodeGen(IRGenerator& gen){
     return RetVal;
 }
 
+llvm::Value* Decrement::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("-- wsa used as left value", 511);
+    return NULL;
+}
+
 ValueOf::ValueOf(Expression* _Operand):Operand(_Operand){
     if(VISIBLE){
         setNodeName("ValueOf");
@@ -465,11 +519,32 @@ ValueOf::ValueOf(Expression* _Operand):Operand(_Operand){
     }
 }
 
+llvm::Value* ValueOf::CodeGen(IRGenerator& gen){
+    llvm::Value* result = CodeGenPtr(gen);
+    return gen.Builder.CreateLoad(result->getType()->getPointerElementType(), result);
+}
+
+llvm::Value* ValueOf::CodeGenPtr(IRGenerator& gen){
+    llvm::Value* result = Operand->CodeGen(gen);
+    if(!result->getType()->isPointerTy())
+        ErrorMessage("* was applied to a non-pointer value", 530);
+    return result;
+}
+
 AddressOf::AddressOf(Expression* _Operand):Operand(_Operand){
     if(VISIBLE){
         setNodeName("AddressOf");
         addChildren(Operand);
     }
+}
+
+llvm::Value* AddressOf::CodeGen(IRGenerator& gen){
+    return Operand->CodeGenPtr(gen);
+}
+
+llvm::Value* AddressOf::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("& was used as left value", 546);
+    return NULL;
 }
 
 LogicNot::LogicNot(Expression* _Operand):Operand(_Operand){
@@ -542,6 +617,8 @@ llvm::Value* BitWiseAnd::CodeGen(IRGenerator& gen){
     llvm::Value* B = OperandB->CodeGen(gen);
     if(!(A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
         TypeUpgrading(A, B, gen);
+    else
+        ErrorMessage("BitWiseAnd must be applied to integers", 546);
     return gen.Builder.CreateAnd(A, B);
 }
 
@@ -584,6 +661,8 @@ llvm::Value* BitWiseOr::CodeGen(IRGenerator& gen){
     llvm::Value* B = OperandB->CodeGen(gen);
     if(!(A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
         TypeUpgrading(A, B, gen);
+    else
+        ErrorMessage("BitWiseOr must be applied to integers", 590);
     return gen.Builder.CreateOr(A, B);
 }
 
@@ -601,7 +680,16 @@ LogicXor::LogicXor(Expression* A, Expression*B):OperandA(A),OperandB(B){
 }
 
 llvm::Value* LogicXor::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    A = Cast2Bool(A, gen);
+    B = Cast2Bool(B, gen);
+    return gen.Builder.CreateXor(A, B);
+}
 
+llvm::Value* LogicXor::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("LogicXor was used as left value", 590);
+    return NULL;
 }
 
 BitWiseXor::BitWiseXor(Expression* A, Expression*B):OperandA(A),OperandB(B){
@@ -612,12 +700,49 @@ BitWiseXor::BitWiseXor(Expression* A, Expression*B):OperandA(A),OperandB(B){
     }
 }
 
+llvm::Value* BitWiseXor::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(!(A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
+        TypeUpgrading(A, B, gen);
+    else
+        ErrorMessage("BitWiseXor must be applied to integers", 634);
+    return gen.Builder.CreateXor(A,B);
+}
+
+llvm::Value* BitWiseXor::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("BitWiseXor was used as left value", 638);
+    return NULL;
+}
+
 Add::Add(Expression* A, Expression*B):OperandA(A),OperandB(B){
     if(VISIBLE){
         setNodeName("+");
         addChildren(OperandA);
         addChildren(OperandB);
     }
+}
+
+llvm::Value* Add::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateAdd(A, B);
+        else
+            return gen.Builder.CreateFAdd(A, B);
+    }
+    else if(A->getType()->isPointerTy() && B->getType()->isIntegerTy())
+        return gen.Builder.CreateGEP(A->getType()->getPointerElementType(), A, B);
+    else if(A->getType()->isIntegerTy() && B->getType()->isPointerTy())
+        return gen.Builder.CreateGEP(B->getType()->getPointerElementType(), B, A);
+    ErrorMessage("An unsupport type was used in addition", 658);
+    return NULL;
+}
+
+llvm::Value* Add::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("Addition was used as left value", 662);
+    return NULL;
 }
 
 Sub::Sub(Expression* A, Expression*B):OperandA(A),OperandB(B){
@@ -628,12 +753,52 @@ Sub::Sub(Expression* A, Expression*B):OperandA(A),OperandB(B){
     }
 }
 
+llvm::Value* Sub::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateSub(A, B);
+        else
+            return gen.Builder.CreateFSub(A, B);
+    }
+    else if(A->getType()->isPointerTy() && B->getType()->isIntegerTy())
+        return gen.Builder.CreateGEP(A->getType()->getPointerElementType(), A, gen.Builder.CreateNeg(B));
+    else if(A->getType()->isIntegerTy() && B->getType()->isPointerTy())
+        return gen.Builder.CreateGEP(B->getType()->getPointerElementType(), B, gen.Builder.CreateNeg(A));
+    ErrorMessage("An unsupport type was used in subtraction", 688);
+    return NULL;
+}
+
+llvm::Value* Sub::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("Subtraction was used as left value", 693);
+    return NULL;
+}
+
 Div::Div(Expression* A, Expression*B):OperandA(A),OperandB(B){
     if(VISIBLE){
         setNodeName("/");
         addChildren(OperandA);
         addChildren(OperandB);
     }
+}
+
+llvm::Value* Div::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateSDiv(A, B);
+        else
+            return gen.Builder.CreateFDiv(A, B);
+    }
+    ErrorMessage("Unsupported type was used in division", 719);
+    return NULL;
+}
+
+llvm::Value* Div::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("Division was used as left value", 693);
+    return NULL;
 }
 
 Mul::Mul(Expression* A, Expression*B):OperandA(A),OperandB(B){
@@ -644,12 +809,46 @@ Mul::Mul(Expression* A, Expression*B):OperandA(A),OperandB(B){
     }
 }
 
+llvm::Value* Mul::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateMul(A, B);
+        else
+            return gen.Builder.CreateFMul(A, B);
+    }
+    ErrorMessage("Unsupported type was used in multiplication", 745);
+    return NULL;
+}
+
+llvm::Value* Mul::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("Multiplication was used as left value", 693);
+    return NULL;
+}
+
 Mod::Mod(Expression* A, Expression*B):OperandA(A),OperandB(B){
     if(VISIBLE){
         setNodeName("%");
         addChildren(OperandA);
         addChildren(OperandB);
     }
+}
+
+llvm::Value* Mod::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(A->getType()->isIntegerTy() && B->getType()->isIntegerTy()){
+        TypeUpgrading(A, B, gen);
+        return gen.Builder.CreateSRem(A, B);
+    }
+    ErrorMessage("Unsupport type was used in Modulo", 769);
+    return NULL;
+}
+
+llvm::Value* Mod::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("Module was used as left value", 693);
+    return NULL;
 }
 
 Gt::Gt(Expression* A, Expression*B):OperandA(A),OperandB(B){
@@ -660,12 +859,50 @@ Gt::Gt(Expression* A, Expression*B):OperandA(A),OperandB(B){
     }
 }
 
+llvm::Value* Gt::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateICmpSGT(A, B);
+        else
+            return gen.Builder.CreateFCmpOGT(A, B);
+    }
+    else{
+        ErrorMessage("unsupport type was used for compariation", 797);
+    }
+}
+
+llvm::Value* Gt::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("> was used as left value", 802);
+    return NULL;
+}
+
 Ge::Ge(Expression* A, Expression*B):OperandA(A),OperandB(B){
     if(VISIBLE){
         setNodeName(">=");
         addChildren(OperandA);
         addChildren(OperandB);
     }
+}
+
+llvm::Value* Ge::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateICmpSGE(A, B);
+        else
+            return gen.Builder.CreateFCmpOGE(A, B);
+    }
+    else{
+        ErrorMessage("unsupport type was used for compariation", 824);
+    }
+}
+
+llvm::Value* Ge::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage(">= was used as left value", 829);
+    return NULL;
 }
 
 Lt::Lt(Expression* A, Expression*B):OperandA(A),OperandB(B){
@@ -676,12 +913,50 @@ Lt::Lt(Expression* A, Expression*B):OperandA(A),OperandB(B){
     }
 }
 
+llvm::Value* Lt::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateICmpSLT(A, B);
+        else
+            return gen.Builder.CreateFCmpOLT(A, B);
+    }
+    else{
+        ErrorMessage("unsupport type was used for compariation", 851);
+    }
+}
+
+llvm::Value* Lt::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("< was used as left value", 856);
+    return NULL;
+}
+
 Le::Le(Expression* A, Expression*B):OperandA(A),OperandB(B){
     if(VISIBLE){
         setNodeName("<=");
         addChildren(OperandA);
         addChildren(OperandB);
     }
+}
+
+llvm::Value* Le::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateICmpSLE(A, B);
+        else
+            return gen.Builder.CreateFCmpOLE(A, B);
+    }
+    else{
+        ErrorMessage("unsupport type was used for compariation", 878);
+    }
+}
+
+llvm::Value* Le::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("<= was used as left value", 883);
+    return NULL;
 }
 
 Eq::Eq(Expression* A, Expression*B):OperandA(A),OperandB(B){
@@ -692,12 +967,60 @@ Eq::Eq(Expression* A, Expression*B):OperandA(A),OperandB(B){
     }
 }
 
+llvm::Value* Eq::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateICmpEQ(A, B);
+        else
+            return gen.Builder.CreateFCmpOEQ(A, B);
+    }
+    else if(A->getType()->isPointerTy() && B->getType()->isPointerTy())
+        return gen.Builder.CreateICmpEQ(
+            gen.Builder.CreatePtrToInt(A, llvm::Type::getInt32Ty(gen.Context)),
+            gen.Builder.CreatePtrToInt(B, llvm::Type::getInt32Ty(gen.Context))
+        );
+    else{
+        ErrorMessage("unsupport type was used for compariation", 910);
+    }
+}
+
+llvm::Value* Eq::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("== was used as left value", 915);
+    return NULL;
+}
+
 Neq::Neq(Expression* A, Expression*B):OperandA(A),OperandB(B){
     if(VISIBLE){
         setNodeName("!=");
         addChildren(OperandA);
         addChildren(OperandB);
     }
+}
+
+llvm::Value* Neq::CodeGen(IRGenerator& gen){
+    llvm::Value* A = OperandA->CodeGen(gen);
+    llvm::Value* B = OperandB->CodeGen(gen);
+    if(TypeUpgrading(A, B, gen)){
+        if(A->getType()->isIntegerTy())
+            return gen.Builder.CreateICmpNE(A, B);
+        else
+            return gen.Builder.CreateFCmpONE(A, B);
+    }
+    else if(A->getType()->isPointerTy() && B->getType()->isPointerTy())
+        return gen.Builder.CreateICmpNE(
+            gen.Builder.CreatePtrToInt(A, llvm::Type::getInt32Ty(gen.Context)),
+            gen.Builder.CreatePtrToInt(B, llvm::Type::getInt32Ty(gen.Context))
+        );
+    else{
+        ErrorMessage("unsupport type was used for compariation", 942);
+    }
+}
+
+llvm::Value* Neq::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("!= was used as left value", 947);
+    return NULL;
 }
 
 Conditional::Conditional(Expression* _Condition, Expression* _ValueTrue, Expression* _ValueFalse):Condition(_Condition),ValueFalse(_ValueFalse),ValueTrue(_ValueTrue){
@@ -709,6 +1032,28 @@ Conditional::Conditional(Expression* _Condition, Expression* _ValueTrue, Express
     }
 }
 
+llvm::Value* Conditional::CodeGen(IRGenerator& gen){
+    llvm::Value* _Condition = Cast2Bool(Condition->CodeGen(gen), gen);
+    llvm::Value* _True = ValueTrue->CodeGen(gen);
+    llvm::Value* _False = ValueFalse->CodeGen(gen);
+    if(_True->getType() == _False->getType() || TypeUpgrading(_True, _False, gen))
+        return gen.Builder.CreateSelect(_Condition, _True, _False);
+    else{
+        ErrorMessage("Two value has different type in ?", 967);
+        return NULL;
+    }
+}
+
+llvm::Value* Conditional::CodeGenPtr(IRGenerator& gen){
+    llvm::Value* _Condition = Cast2Bool(Condition->CodeGen(gen), gen);
+    llvm::Value* _True = ValueTrue->CodeGenPtr(gen);
+    llvm::Value* _False = ValueFalse->CodeGenPtr(gen);
+    if(_True->getType() == _False->getType())
+        return gen.Builder.CreateSelect(_Condition, _True, _False);
+    ErrorMessage("When ? used as left value, two operands must have same type", 978);
+    return NULL;
+}
+
 Assign::Assign(Expression* _Target, Expression* _Object):Target(_Target),Object(_Object){
     if(VISIBLE){
         setNodeName("=");
@@ -718,8 +1063,22 @@ Assign::Assign(Expression* _Target, Expression* _Object):Target(_Target),Object(
 }
 
 llvm::Value* Assign::CodeGen(IRGenerator& gen){
-    gen.Builder.CreateStore(Object->CodeGen(gen), Target->CodeGenPtr(gen));
-    return Object->CodeGen(gen);
+    llvm::Value* _result = Object->CodeGen(gen);
+    llvm::Value* _target = Target->CodeGenPtr(gen);
+    _result = TypeCastTo(_result, _target->getType()->getPointerElementType(), gen);
+    if(_result == NULL){
+        ErrorMessage("unsupport cast", 849);
+        return NULL;
+    }
+    gen.Builder.CreateStore(_result, _target);
+    return _result;
+}
+
+llvm::Value* Assign::CodeGenPtr(IRGenerator& gen){
+    // I don't think this function will be used
+    // realize it when it's called
+    ErrorMessage("Assign::CodeGenPtr", 1005);
+    return NULL;
 }
 
 Constant::Constant(bool b):Type(_BOOL_){
@@ -756,7 +1115,12 @@ llvm::Value* Constant::CodeGen(IRGenerator& gen){
         case _BOOL_: return llvm::ConstantInt::get(llvm::Type::getInt1Ty(gen.Context), Value.b);
         case _CHAR_: return llvm::ConstantInt::get(llvm::Type::getInt8Ty(gen.Context), Value.c);
     }
-    ErrorMessage("unknown type", 4);
+    ErrorMessage("unknown type", 1043);
+}
+
+llvm::Value* Constant::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("Constant was used as left value", 1047);
+    return NULL;
 }
 
 Variable::Variable(std::string* _Name):Name(_Name){
@@ -781,4 +1145,13 @@ llvm::Value* Variable::CodeGenPtr(IRGenerator& gen){
 StrVar::StrVar(std::string* _Value):Value(_Value){
     if(VISIBLE)
         setNodeName("Constant string");
+}
+
+llvm::Value* StrVar::CodeGen(IRGenerator& gen){
+    return gen.Builder.CreateGlobalStringPtr(Value->c_str());
+}
+
+llvm::Value* StrVar::CodeGenPtr(IRGenerator& gen){
+    ErrorMessage("Constant string was used as left value", 1047);
+    return NULL;
 }
