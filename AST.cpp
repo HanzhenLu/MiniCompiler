@@ -388,7 +388,17 @@ FunctionCall::FunctionCall(std::string* _FunName, std::vector<Expression*>* _Arg
 }
 
 llvm::Value* FunctionCall::CodeGen(IRGenerator& gen){
+    llvm::Function *Call = gen.module->getFunction(*FunName);
+    if(Call == NULL)
+        ErrorMessage("unknown function", 393);
+    if(Call->arg_size() != Args->size())
+        ErrorMessage("unmatched args", 395);
     
+    std::vector<llvm::Value*> _Args;
+    for(int i = 0; i < Call->arg_size(); i++){
+        _Args.push_back((*Args)[i]->CodeGen(gen));
+    }
+    return gen.Builder.CreateCall(Call, _Args, *FunName);
 }
 
 llvm::Value* FunctionCall::CodeGenPtr(IRGenerator& gen){
