@@ -366,15 +366,13 @@ GetItem::GetItem(Expression* _Array, Expression* _Index):Array(_Array), Index(_I
 }
 
 llvm::Value* GetItem::CodeGen(IRGenerator& gen){
-    llvm::Value* result = CodeGenPtr(gen);
-    return gen.Builder.CreateLoad(result->getType()->getPointerElementType(), result);
+    return SuperLoad(CodeGenPtr(gen), gen);
 }
 
 llvm::Value* GetItem::CodeGenPtr(IRGenerator& gen){
     llvm::Value* ArrayPtr = Array->CodeGen(gen);
-    if(!ArrayPtr->getType()->isPointerTy()){
+    if(!ArrayPtr->getType()->isPointerTy())
         ErrorMessage("a[], a must be a pointers or arrays", 375);
-    }
     llvm::Value* Idx = Index->CodeGen(gen);
     if(!Idx->getType()->isIntegerTy())
         ErrorMessage("a[idx], idx must be an integer", 379);
@@ -520,8 +518,7 @@ ValueOf::ValueOf(Expression* _Operand):Operand(_Operand){
 }
 
 llvm::Value* ValueOf::CodeGen(IRGenerator& gen){
-    llvm::Value* result = CodeGenPtr(gen);
-    return gen.Builder.CreateLoad(result->getType()->getPointerElementType(), result);
+    return SuperLoad(CodeGenPtr(gen), gen);
 }
 
 llvm::Value* ValueOf::CodeGenPtr(IRGenerator& gen){
@@ -1132,7 +1129,7 @@ llvm::Value* Variable::CodeGen(IRGenerator& gen){
     auto iter = gen.NamedValues.find(*Name);
     if(iter == gen.NamedValues.end())
         ErrorMessage("undefined variable is used", 682);
-    return gen.Builder.CreateLoad(iter->second->getType()->getPointerElementType(), iter->second);
+    return SuperLoad(iter->second, gen);
 }
 
 llvm::Value* Variable::CodeGenPtr(IRGenerator& gen){

@@ -1,7 +1,7 @@
 #include <iostream>
 #include "IRGenerator.h"
 
-IRGenerator::IRGenerator():Builder(llvm::IRBuilder<>(Context)){
+IRGenerator::IRGenerator():Builder(llvm::IRBuilder<>(Context)), IsInFunction(false){
     module = new llvm::Module("Program", Context);
 }
 
@@ -73,4 +73,12 @@ llvm::Value* TypeCastTo(llvm::Value* A, llvm::Type* type, IRGenerator& gen){
     else if(typeA->isPointerTy() && type->isPointerTy())
         return gen.Builder.CreatePointerCast(A, type);
     else return NULL;
+}
+
+// when we pass the array type variable, what we want is the address of the first element instead of the whole array
+llvm::Value* SuperLoad(llvm::Value* Operand, IRGenerator& gen){
+    if(Operand->getType()->getPointerElementType()->isArrayTy())
+        return gen.Builder.CreatePointerCast(Operand, Operand->getType()->getPointerElementType()->getArrayElementType()->getPointerTo());
+    else
+        return gen.Builder.CreateLoad(Operand->getType()->getPointerElementType(), Operand);
 }

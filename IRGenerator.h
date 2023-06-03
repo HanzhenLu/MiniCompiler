@@ -15,7 +15,8 @@ public:
     llvm::LLVMContext Context;
     llvm::IRBuilder<> Builder;
     std::map<std::string, llvm::Value*> NamedValues;
-    
+    std::map<std::string, llvm::Value*> GlobalValues;
+    bool IsInFunction;
 };
 
 llvm::Value* Cast2Bool(llvm::Value* value, IRGenerator& gen);
@@ -25,3 +26,5 @@ bool TypeUpgrading(llvm::Value*& A, llvm::Value*& B, IRGenerator& gen);
 
 // try to convert A from typeA to typeB
 llvm::Value* TypeCastTo(llvm::Value* A, llvm::Type* type, IRGenerator& gen);
+
+llvm::Value* SuperLoad(llvm::Value* Operand, IRGenerator& gen);
