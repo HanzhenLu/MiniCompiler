@@ -57,6 +57,7 @@ FunDefinition::FunDefinition(VarType* _ReturnType, FunName* _FunNam, ArgList* _A
         addChildren(ReturnType);
         addChildren(Name);
         addChildren(Args);
+        // VNode is a virtual node making graph more readalbe
         if(_Statements!=NULL){
             Node* VNode = new Node();
             VNode->setNodeName("FunBody");
@@ -304,10 +305,9 @@ Block::Block(std::vector<Statement*>* _statements):statements(_statements){
 }
 
 llvm::Value* Block::CodeGen(IRGenerator& gen){
-    llvm::Value *RetVal, *StaVal;
     // There is a little problem here, when multiple return statements exist, how to decide for returning value
     for(auto i : *statements){
-        StaVal = i->CodeGen(gen);
+        i->CodeGen(gen);
         // if(StaVal)
         //     return StaVal;
     }
@@ -489,7 +489,7 @@ llvm::Value* Increment::CodeGen(IRGenerator& gen){
     llvm::Type* _type = value->getType()->getPointerElementType();
     if(!(_type->isIntegerTy()))
         ErrorMessage("Only integers are allowed to increment", 429);
-    llvm::Value* puls = gen.Builder.CreateAdd(RetVal, llvm::ConstantInt::get(llvm::Type::getInt1Ty(gen.Context), 1));
+    llvm::Value* puls = gen.Builder.CreateAdd(RetVal, llvm::ConstantInt::get(llvm::Type::getInt32Ty(gen.Context), 1));
     gen.Builder.CreateStore(puls, value);
     return RetVal;
 }
@@ -513,7 +513,7 @@ llvm::Value* Decrement::CodeGen(IRGenerator& gen){
     // temporarily, only int is allowed to decrement
     if(!(_type->isIntegerTy()))
         ErrorMessage("Only integers are allowed to decrement", 446);
-    llvm::Value* sub = gen.Builder.CreateSub(RetVal, llvm::ConstantInt::get(llvm::Type::getInt1Ty(gen.Context), -1));
+    llvm::Value* sub = gen.Builder.CreateSub(RetVal, llvm::ConstantInt::get(llvm::Type::getInt32Ty(gen.Context), -1));
     gen.Builder.CreateStore(sub, value);
     return RetVal;
 }
@@ -582,7 +582,7 @@ BitWiseNot::BitWiseNot(Expression* _Operand):Operand(_Operand){
 
 llvm::Value* BitWiseNot::CodeGen(IRGenerator& gen){
     llvm::Value* value = Operand->CodeGen(gen);
-    if(!value->getType()->isIntegerTy()){
+    if(value->getType()->isIntegerTy()){
         ErrorMessage("Bitwise Not must be applied to integers", 499);
     }
     return gen.Builder.CreateNot(value);
@@ -625,7 +625,7 @@ BitWiseAnd::BitWiseAnd(Expression* A, Expression*B):OperandA(A),OperandB(B){
 llvm::Value* BitWiseAnd::CodeGen(IRGenerator& gen){
     llvm::Value* A = OperandA->CodeGen(gen);
     llvm::Value* B = OperandB->CodeGen(gen);
-    if(!(A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
+    if((A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
         TypeUpgrading(A, B, gen);
     else
         ErrorMessage("BitWiseAnd must be applied to integers", 546);
@@ -669,7 +669,7 @@ BitWiseOr::BitWiseOr(Expression* A, Expression*B):OperandA(A),OperandB(B){
 llvm::Value* BitWiseOr::CodeGen(IRGenerator& gen){
     llvm::Value* A = OperandA->CodeGen(gen);
     llvm::Value* B = OperandB->CodeGen(gen);
-    if(!(A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
+    if((A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
         TypeUpgrading(A, B, gen);
     else
         ErrorMessage("BitWiseOr must be applied to integers", 590);
@@ -713,7 +713,7 @@ BitWiseXor::BitWiseXor(Expression* A, Expression*B):OperandA(A),OperandB(B){
 llvm::Value* BitWiseXor::CodeGen(IRGenerator& gen){
     llvm::Value* A = OperandA->CodeGen(gen);
     llvm::Value* B = OperandB->CodeGen(gen);
-    if(!(A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
+    if((A->getType()->isIntegerTy() && B->getType()->isIntegerTy()))
         TypeUpgrading(A, B, gen);
     else
         ErrorMessage("BitWiseXor must be applied to integers", 634);
@@ -742,6 +742,7 @@ llvm::Value* Add::CodeGen(IRGenerator& gen){
         else
             return gen.Builder.CreateFAdd(A, B);
     }
+    // when adding an integer to pointer, step is the size of the pointing type insetad of 1
     else if(A->getType()->isPointerTy() && B->getType()->isIntegerTy())
         return gen.Builder.CreateGEP(A->getType()->getPointerElementType(), A, B);
     else if(A->getType()->isIntegerTy() && B->getType()->isPointerTy())
@@ -772,6 +773,7 @@ llvm::Value* Sub::CodeGen(IRGenerator& gen){
         else
             return gen.Builder.CreateFSub(A, B);
     }
+    // similar with addition
     else if(A->getType()->isPointerTy() && B->getType()->isIntegerTy())
         return gen.Builder.CreateGEP(A->getType()->getPointerElementType(), A, gen.Builder.CreateNeg(B));
     else if(A->getType()->isIntegerTy() && B->getType()->isPointerTy())
@@ -986,6 +988,7 @@ llvm::Value* Eq::CodeGen(IRGenerator& gen){
         else
             return gen.Builder.CreateFCmpOEQ(A, B);
     }
+    // when comparing two pointers, we will treat them as two integers 
     else if(A->getType()->isPointerTy() && B->getType()->isPointerTy())
         return gen.Builder.CreateICmpEQ(
             gen.Builder.CreatePtrToInt(A, llvm::Type::getInt32Ty(gen.Context)),

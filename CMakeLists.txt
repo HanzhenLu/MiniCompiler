@@ -17,7 +17,7 @@ add_definitions(${LLVM_DEFINITIONS_LIST})
 
 # flex and bison
 execute_process(WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
-                COMMAND flex Lexer.l 
+                COMMAND flex Lexer.lpp
                 COMMAND bison Parser.ypp -d)
 
 # Now build our tools
