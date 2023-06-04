@@ -5,11 +5,12 @@ IRGenerator::IRGenerator():Builder(llvm::IRBuilder<>(Context)), IsInFunction(fal
     module = new llvm::Module("Program", Context);
 }
 
+// cast value to bool
 llvm::Value* Cast2Bool(llvm::Value* value, IRGenerator& gen){
     if(value->getType() == llvm::Type::getInt1Ty(gen.Context))
         return value;
     else if(value->getType()->isIntegerTy())
-        return gen.Builder.CreateICmpNE(value, llvm::ConstantInt::get(value->getType(), 0, true));
+        return gen.Builder.CreateICmpNE(value, llvm::ConstantInt::get(value->getType(), 0, false));
     else if(value->getType()->isFloatTy())
         return gen.Builder.CreateFCmpONE(value, llvm::ConstantFP::get(value->getType(), 0.0));
     else if(value->getType()->isPointerTy())
@@ -37,7 +38,7 @@ bool TypeUpgrading(llvm::Value*& A, llvm::Value*& B, IRGenerator& gen){
         if(typeA->isFloatTy() && typeB->isDoubleTy())
             A = gen.Builder.CreateFPCast(A, typeB);
         else if(typeA->isDoubleTy() && typeB->isFloatTy())
-            B = gen.Builder.CreateFPCast(B, A->getType());
+            B = gen.Builder.CreateFPCast(B, typeA);
         return true;
     }
     // careful about the sign, too
@@ -46,7 +47,7 @@ bool TypeUpgrading(llvm::Value*& A, llvm::Value*& B, IRGenerator& gen){
         return true;
     }
     else if(typeA->isFloatingPointTy() && typeB->isIntegerTy()){
-        B = typeB->isIntegerTy(1) ? gen.Builder.CreateUIToFP(B, typeA) : gen.Builder.CreateSIToFP(B, typeB);
+        B = typeB->isIntegerTy(1) ? gen.Builder.CreateUIToFP(B, typeA) : gen.Builder.CreateSIToFP(B, typeA);
         return true;
     }
     else return false;

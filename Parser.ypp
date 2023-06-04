@@ -33,7 +33,9 @@ int main()
 	// produce IR code
 	Root->CodeGen(gen);
 	// print IR code
-	gen.module->print(llvm::errs(), nullptr);
+	std::error_code EC;
+	llvm::raw_fd_ostream Out("IRCode", EC);
+	gen.module->print(Out, nullptr);
 	return 0;
 }
 %}

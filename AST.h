@@ -56,6 +56,7 @@ public:
 
 class Definition: public Statement{
 public:
+    // this function should be changed to Virtual function later
     virtual llvm::Value* CodeGen(IRGenerator& gen){
         std::cout << "Definition" <<std::endl;
         return NULL;
@@ -130,7 +131,6 @@ protected:
 public:
     VarType():Type(NULL){}
     // generate type except pointer and array
-    // we should change it to a virtual function later
     virtual llvm::Type* GetType(IRGenerator& gen) = 0;
 };
 
@@ -181,14 +181,11 @@ public:
 
 class Expression: public Statement{
 public:
-    virtual llvm::Value* CodeGen(IRGenerator& gen){
-        std::cout << "Expression : CodeGen" << std::endl;
-        return NULL;
-    }
-    virtual llvm::Value* CodeGenPtr(IRGenerator& gen){
-        std::cout << "Expression : CodeGenPtr" << std::endl;
-        return NULL;
-    }
+    // return the copy of the value as right value
+    virtual llvm::Value* CodeGen(IRGenerator& gen) = 0;
+    // return the pointer pointing to the address of the value, 
+    // can be used as left value after loading
+    virtual llvm::Value* CodeGenPtr(IRGenerator& gen) = 0;
 };
 
 class Block: public Statement{
@@ -274,6 +271,8 @@ class PtrComponent: public Expression{
     std::string* ComponentName;
 public:
     PtrComponent(Expression* _PtrStructure, std::string* _ComponentName);
+    llvm::Value* CodeGen(IRGenerator& gen){}
+    llvm::Value* CodeGenPtr(IRGenerator& gen){}
 };
 
 class PositiveSign: public Expression{

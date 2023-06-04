@@ -57,11 +57,11 @@ FunDefinition::FunDefinition(VarType* _ReturnType, FunName* _FunNam, ArgList* _A
         addChildren(ReturnType);
         addChildren(Name);
         addChildren(Args);
-        Node* VNode = new Node();
         if(_Statements!=NULL){
+            Node* VNode = new Node();
             VNode->setNodeName("FunBody");
             addChildren(VNode);
-            addChildren(_Statements);
+            VNode->addChildren(_Statements);
         }
         setNodeName("FunDefinition");
     }
@@ -92,12 +92,14 @@ llvm::Value* FunDefinition::CodeGen(IRGenerator& gen){
             ErrorMessage("redefinition of function with different args", 93);
         int idx = 0;
         gen.NamedValues.clear();
-        for(llvm::Function::arg_iterator AI = fun->arg_begin(); idx != ArgsType.size(); idx++, AI++){
-            AI->setName(Args->GetNameByIndex(idx));
-            gen.NamedValues[Args->GetNameByIndex(idx)] = AI;
-        }
         llvm::BasicBlock* BB = llvm::BasicBlock::Create(gen.Context, "entry", fun);
         gen.Builder.SetInsertPoint(BB);
+        for(llvm::Function::arg_iterator AI = fun->arg_begin(); idx != ArgsType.size(); idx++, AI++){
+            llvm::Value* temp = gen.Builder.CreateAlloca(AI->getType());
+            temp->setName(Args->GetNameByIndex(idx));
+            gen.Builder.CreateStore(AI, temp);
+            gen.NamedValues[Args->GetNameByIndex(idx)] = temp;
+        }
         if(llvm::Value* RetVal = Statements->CodeGen(gen)){
             // Validate the generated code, checking for consistency.
             llvm::verifyFunction(*fun);
@@ -207,8 +209,6 @@ llvm::Type* Var::GetType(IRGenerator& gen){
         return LLVMType;
     llvm::Type* basic = ASTType->GetType(gen);
     for(int i = 0; i < PointerDim; i++)
-        // I don't know the exactly usage of the second parameter,
-        // if something bad happens, we should check here
         basic = llvm::PointerType::get(basic, 0);
     for(int i = 0; i < ArrayDim.size(); i++)
         basic = llvm::ArrayType::get(basic, ArrayDim[i]);
@@ -353,7 +353,8 @@ ForStatement::ForStatement(Expression* _Initialization, Expression* _Condition, 
 ReturnStatement::ReturnStatement(Expression* _ReturnValue): ReturnValue(_ReturnValue){
     if(VISIBLE){
         setNodeName("return");
-        addChildren(ReturnValue);
+        if(ReturnValue != NULL)
+            addChildren(ReturnValue);
     }    
 }
 
@@ -396,7 +397,9 @@ llvm::Value* FunctionCall::CodeGen(IRGenerator& gen){
     
     std::vector<llvm::Value*> _Args;
     for(int i = 0; i < Call->arg_size(); i++){
-        _Args.push_back((*Args)[i]->CodeGen(gen));
+        auto temp = (*Args)[i]->CodeGen(gen);
+        temp = TypeCastTo(temp, Call->getArg(i)->getType(), gen);
+        _Args.push_back(temp);
     }
     return gen.Builder.CreateCall(Call, _Args, *FunName);
 }
